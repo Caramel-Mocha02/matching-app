@@ -1,4 +1,13 @@
-import { Autocomplete, Box, Chip, MenuItem, Stack, TextField, Typography } from '@mui/material'
+import {
+  Autocomplete, Box, Chip, MenuItem, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography,
+} from '@mui/material'
+
+// 「外見の好み」の3択。neutral（どちらでも）は保存しない
+const LIKE_CHOICES = [
+  { value: 'like', label: '好き' },
+  { value: 'neutral', label: 'どちらでも' },
+  { value: 'dislike', label: '苦手' },
+]
 
 // 数値入力欄の値を変換する（空欄なら null、それ以外は数値）
 const toNumber = (text) => (text === '' ? null : Number(text))
@@ -94,6 +103,63 @@ export default function QuestionField({ question, value, onChange }) {
             slotProps={{ htmlInput: { min, max } }}
             onChange={(e) => onChange({ ...range, max: toNumber(e.target.value) })}
           />
+        </Stack>
+      </Box>
+    )
+  }
+
+  // 3段階などの横並びボタン。清潔感の質問で使う
+  if (type === 'scale') {
+    return (
+      <Box>
+        <Typography variant="body2" gutterBottom>{label}</Typography>
+        <ToggleButtonGroup
+          exclusive
+          fullWidth
+          size="small"
+          color="primary"
+          value={value ?? question.default ?? null}
+          // 選択中のボタンをもう一度押すと null が来るので、その場合は何もしない
+          onChange={(_e, v) => v !== null && onChange(v)}
+        >
+          {options.map((opt) => (
+            <ToggleButton key={opt.value} value={opt.value}>{opt.label}</ToggleButton>
+          ))}
+        </ToggleButtonGroup>
+      </Box>
+    )
+  }
+
+  // 選択肢ごとに「好き / どちらでも / 苦手」を付ける。
+  // value は { slim: 'like', chubby: 'dislike' } のような形（どちらでもの選択肢は含めない）
+  if (type === 'likes') {
+    const likes = value ?? {}
+    const setLike = (optValue, choice) => {
+      const next = { ...likes }
+      if (choice === 'neutral') delete next[optValue]
+      else next[optValue] = choice
+      onChange(next)
+    }
+    return (
+      <Box>
+        <Typography fontWeight={700} gutterBottom>{label}</Typography>
+        <Stack spacing={1}>
+          {options.map((opt) => (
+            <Stack key={opt.value} direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
+              <Typography variant="body2">{opt.label}</Typography>
+              <ToggleButtonGroup
+                exclusive
+                size="small"
+                color="primary"
+                value={likes[opt.value] ?? 'neutral'}
+                onChange={(_e, v) => v !== null && setLike(opt.value, v)}
+              >
+                {LIKE_CHOICES.map((c) => (
+                  <ToggleButton key={c.value} value={c.value} sx={{ px: 1.5 }}>{c.label}</ToggleButton>
+                ))}
+              </ToggleButtonGroup>
+            </Stack>
+          ))}
         </Stack>
       </Box>
     )

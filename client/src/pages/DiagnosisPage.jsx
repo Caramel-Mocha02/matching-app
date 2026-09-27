@@ -8,8 +8,8 @@ import { fetchDiagnosis, saveToTable } from '../lib/diagnosis.js'
 import QuestionField from '../components/QuestionField.jsx'
 import { STEPS } from '../data/steps.js'
 
-// 未回答かどうか（年収の「0」は回答済みとして扱うため、null と空文字だけを未回答にする）
-const isEmpty = (v) => v === null || v === undefined || v === ''
+// 未回答かどうか（年収の「0」は回答済みとして扱うため、null・空文字・空の配列だけを未回答にする）
+const isEmpty = (v) => v === null || v === undefined || v === '' || (Array.isArray(v) && v.length === 0)
 
 // そのステップの回答を取り出す。group があれば JSON 列の中身、無ければテーブルの行そのもの
 const getStepValues = (data, step) => {
@@ -36,7 +36,10 @@ export default function DiagnosisPage() {
   }, [user.id])
 
   const current = STEPS[step]
-  const questions = current.questions ?? []
+  // 性別で出し分ける質問（ヒゲなど）：自分についての質問なら自分の性別、相手についてなら相手の性別で判定
+  const myGender = data.profiles.gender
+  const targetGender = current.about === 'partner' ? (myGender === 'male' ? 'female' : 'male') : myGender
+  const questions = (current.questions ?? []).filter((q) => !q.onlyGender || q.onlyGender === targetGender)
   const values = getStepValues(data, current)
   const isLast = step === STEPS.length - 1
   const progress = ((step + 1) / STEPS.length) * 100
