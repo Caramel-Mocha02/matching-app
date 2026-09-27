@@ -2,6 +2,9 @@ import { BASIC_QUESTIONS, MARRIAGE_QUESTIONS } from './profileQuestions.js'
 import { MUST_CONDITION_QUESTIONS } from './mustConditionQuestions.js'
 import { APPEARANCE_SELF_QUESTIONS, APPEARANCE_PREFERENCE_QUESTIONS } from './appearanceQuestions.js'
 import { CLEANLINESS_SELF_QUESTIONS, CLEANLINESS_PREFERENCE_QUESTIONS } from './cleanlinessQuestions.js'
+import { PERSONALITY_QUESTIONS } from './personalityQuestions.js'
+import { COMMUNICATION_QUESTIONS } from './communicationQuestions.js'
+import { LIFESTYLE_QUESTIONS } from './lifestyleQuestions.js'
 
 // 診断ステップの一覧。上から順に表示される。
 //   table:    保存先のテーブル（'profiles' または 'preferences'）
@@ -55,8 +58,29 @@ export const STEPS = [
     optional: true,
     questions: CLEANLINESS_PREFERENCE_QUESTIONS,
   },
-  { title: '性格・内面' },
-  { title: '会話' },
-  { title: '生活価値観' },
+  {
+    title: '性格・内面',
+    description: '正解はありません。理想ではなく、実際の自分に一番近いものを選んでください。',
+    table: 'profiles',
+    group: 'personality',
+    about: 'self',
+    questions: PERSONALITY_QUESTIONS,
+  },
+  {
+    title: '会話',
+    description: 'ふだんの会話や、意見が合わないときのことを思い浮かべて答えてください。',
+    table: 'profiles',
+    group: 'communication',
+    about: 'self',
+    questions: COMMUNICATION_QUESTIONS,
+  },
+  {
+    title: '生活価値観',
+    description: '結婚後の暮らしを想像して答えてください。',
+    table: 'profiles',
+    group: 'lifestyle',
+    about: 'self',
+    questions: LIFESTYLE_QUESTIONS,
+  },
   { title: '確認' },
 ]

@@ -27,6 +27,11 @@ export default function DiagnosisPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
+  // ステップを切り替えたら、画面の一番上に戻す（質問が多く縦に長いため）
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [step])
+
   // 画面を開いたとき、保存済みの回答があれば読み込んで入力欄に反映する
   useEffect(() => {
     fetchDiagnosis(user.id)

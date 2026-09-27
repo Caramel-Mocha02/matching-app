@@ -1,5 +1,6 @@
 import {
-  Autocomplete, Box, Chip, MenuItem, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography,
+  Autocomplete, Box, Chip, FormControlLabel, MenuItem, Radio, RadioGroup, Stack, TextField,
+  ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material'
 
 // 「外見の好み」の3択。neutral（どちらでも）は保存しない
@@ -104,6 +105,20 @@ export default function QuestionField({ question, value, onChange }) {
             onChange={(e) => onChange({ ...range, max: toNumber(e.target.value) })}
           />
         </Stack>
+      </Box>
+    )
+  }
+
+  // 文章の選択肢を縦に並べて1つ選ぶ。性格・会話・生活価値観の質問で使う
+  if (type === 'choice') {
+    return (
+      <Box>
+        <Typography fontWeight={700} gutterBottom>{label}</Typography>
+        <RadioGroup value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
+          {options.map((opt) => (
+            <FormControlLabel key={opt.value} value={opt.value} control={<Radio size="small" />} label={opt.label} />
+          ))}
+        </RadioGroup>
       </Box>
     )
   }
