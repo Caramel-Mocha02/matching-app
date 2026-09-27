@@ -4,61 +4,70 @@ import {
   Alert, Box, Button, Card, CardContent, CircularProgress, LinearProgress, Stack, Typography,
 } from '@mui/material'
 import { useAuth } from '../contexts/AuthContext.jsx'
-import { fetchProfile, saveProfile } from '../lib/profile.js'
+import { fetchDiagnosis, saveToTable } from '../lib/diagnosis.js'
 import QuestionField from '../components/QuestionField.jsx'
-import { BASIC_QUESTIONS, MARRIAGE_QUESTIONS } from '../data/profileQuestions.js'
-
-// 入力ステップの一覧。questions があるステップは入力フォームを表示する
-// （外見・性格などの中身は Phase 4〜5 で追加する）
-const STEPS = [
-  { title: '基本情報', questions: BASIC_QUESTIONS },
-  { title: '結婚条件', questions: MARRIAGE_QUESTIONS },
-  { title: '外見の好み' },
-  { title: '性格・内面' },
-  { title: '会話' },
-  { title: '生活価値観' },
-  { title: '確認' },
-]
+import { STEPS } from '../data/steps.js'
 
 // 未回答かどうか（年収の「0」は回答済みとして扱うため、null と空文字だけを未回答にする）
 const isEmpty = (v) => v === null || v === undefined || v === ''
+
+// そのステップの回答を取り出す。group があれば JSON 列の中身、無ければテーブルの行そのもの
+const getStepValues = (data, step) => {
+  const row = data[step.table] ?? {}
+  return step.group ? row[step.group] ?? {} : row
+}
 
 export default function DiagnosisPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [step, setStep] = useState(0) // 今何番目のステップか（0始まり）
-  const [answers, setAnswers] = useState({}) // 全ステップの回答をまとめて持つ
+  // 全テーブルの回答をまとめて持つ → { profiles: {...}, preferences: {...} }
+  const [data, setData] = useState({ profiles: {}, preferences: {} })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  // 画面を開いたとき、保存済みのプロフィールがあれば読み込んで入力欄に反映する
+  // 画面を開いたとき、保存済みの回答があれば読み込んで入力欄に反映する
   useEffect(() => {
-    fetchProfile(user.id)
-      .then((profile) => setAnswers(profile ?? {}))
-      .catch(() => setError('プロフィールの読み込みに失敗しました。'))
+    fetchDiagnosis(user.id)
+      .then(setData)
+      .catch(() => setError('データの読み込みに失敗しました。'))
       .finally(() => setLoading(false))
   }, [user.id])
 
   const current = STEPS[step]
   const questions = current.questions ?? []
+  const values = getStepValues(data, current)
   const isLast = step === STEPS.length - 1
   const progress = ((step + 1) / STEPS.length) * 100
-  const allAnswered = questions.every((q) => !isEmpty(answers[q.key]))
+  const allAnswered = current.optional || questions.every((q) => !isEmpty(values[q.key]))
+  // 範囲入力で「下限 > 上限」になっていないか
+  const hasInvalidRange = questions.some(
+    (q) => q.type === 'range' && values[q.key]?.min != null && values[q.key]?.max != null && values[q.key].min > values[q.key].max,
+  )
 
+  // 1項目の回答を更新する（group がある場合は JSON 列の中を更新）
   const handleChange = (key, value) => {
-    setAnswers((prev) => ({ ...prev, [key]: value }))
+    setData((prev) => {
+      const row = prev[current.table] ?? {}
+      const newRow = current.group
+        ? { ...row, [current.group]: { ...row[current.group], [key]: value } }
+        : { ...row, [key]: value }
+      return { ...prev, [current.table]: newRow }
+    })
   }
 
   const handleNext = async () => {
     setError('')
 
-    // このステップに質問があれば、その回答だけを取り出して保存する
+    // このステップに質問があれば、その回答を保存する
     if (questions.length > 0) {
-      const values = Object.fromEntries(questions.map((q) => [q.key, answers[q.key]]))
+      const payload = current.group
+        ? { [current.group]: values } // JSON 列ごと保存
+        : Object.fromEntries(questions.map((q) => [q.key, values[q.key]])) // 1項目ずつ列に保存
       setSaving(true)
       try {
-        await saveProfile(user.id, values)
+        await saveToTable(current.table, user.id, payload)
       } catch {
         setError('保存に失敗しました。時間をおいてもう一度お試しください。')
         return
@@ -81,7 +90,7 @@ export default function DiagnosisPage() {
 
   return (
     <Stack spacing={3}>
-      {/* 進捗表示：「3 / 7」とプログレスバー */}
+      {/* 進捗表示：「3 / 8」とプログレスバー */}
       <Box>
         <Typography variant="body2" color="text.secondary" gutterBottom>
           ステップ {step + 1} / {STEPS.length}
@@ -94,14 +103,17 @@ export default function DiagnosisPage() {
           <Typography variant="h5" fontWeight={700} gutterBottom>
             {current.title}
           </Typography>
+          {current.description && (
+            <Typography variant="body2" color="text.secondary">{current.description}</Typography>
+          )}
 
           {questions.length > 0 ? (
-            <Stack spacing={2} sx={{ mt: 2 }}>
+            <Stack spacing={3} sx={{ mt: 3 }}>
               {questions.map((q) => (
                 <QuestionField
                   key={q.key}
                   question={q}
-                  value={answers[q.key]}
+                  value={values[q.key]}
                   onChange={(value) => handleChange(q.key, value)}
                 />
               ))}
@@ -113,6 +125,7 @@ export default function DiagnosisPage() {
       </Card>
 
       {error && <Alert severity="error">{error}</Alert>}
+      {hasInvalidRange && <Alert severity="warning">下限が上限より大きくなっています。</Alert>}
 
       <Stack direction="row" justifyContent="space-between" alignItems="center">
         <Button onClick={() => setStep(step - 1)} disabled={step === 0 || saving}>
@@ -122,7 +135,7 @@ export default function DiagnosisPage() {
           {!allAnswered && (
             <Typography variant="body2" color="text.secondary">すべての項目を入力してください</Typography>
           )}
-          <Button variant="contained" onClick={handleNext} disabled={!allAnswered || saving}>
+          <Button variant="contained" onClick={handleNext} disabled={!allAnswered || hasInvalidRange || saving}>
             {saving ? '保存中…' : isLast ? 'マッチングする' : '次へ'}
           </Button>
         </Stack>
