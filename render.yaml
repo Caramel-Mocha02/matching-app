@@ -1,0 +1,19 @@
+# Render の設定ファイル（Express サーバーを公開するため）
+# Render の「New → Blueprint」でこのリポジトリを選ぶと、この内容でサーバーが作られる
+services:
+  - type: web
+    name: matching-app-server
+    runtime: node
+    plan: free
+    # server フォルダは client/src/data の質問データを読み込むため、リポジトリ全体を使って起動する
+    buildCommand: cd server && npm install
+    startCommand: cd server && npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: SUPABASE_URL
+        value: https://ytlwhzencvaiwxelamjh.supabase.co
+      # 秘密の値はここに書かず、作成時に Render の画面で入力する（sync: false）
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
