@@ -16,7 +16,9 @@ export const PREFECTURES = [
 const prefectureOptions = PREFECTURES.map((p) => ({ value: p, label: p }))
 
 // ステップ1：基本情報
+//   optional: true の質問は未入力でも次へ進める
 export const BASIC_QUESTIONS = [
+  { key: 'avatar_path', label: 'プロフィール写真', type: 'avatar', optional: true },
   { key: 'nickname', label: 'ニックネーム', type: 'text' },
   { key: 'age', label: '年齢', type: 'number', min: 18, max: 99 },
   {

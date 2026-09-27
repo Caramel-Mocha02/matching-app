@@ -1,7 +1,9 @@
 import {
-  Autocomplete, Box, Chip, FormControlLabel, MenuItem, Radio, RadioGroup, Stack, TextField,
-  ToggleButton, ToggleButtonGroup, Typography,
+  Accordion, AccordionDetails, AccordionSummary, Autocomplete, Box, Chip, FormControlLabel, MenuItem, Radio,
+  RadioGroup, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import AvatarField from './AvatarField.jsx'
 
 // 「外見の好み」の3択。neutral（どちらでも）は保存しない
 const LIKE_CHOICES = [
@@ -16,6 +18,10 @@ const toNumber = (text) => (text === '' ? null : Number(text))
 // 質問データ（data/ フォルダの1項目）を受け取り、種類に応じた入力欄を表示する
 export default function QuestionField({ question, value, onChange }) {
   const { label, type, options, min, max, unit } = question
+
+  if (type === 'avatar') {
+    return <AvatarField label={label} value={value} onChange={onChange} />
+  }
 
   if (type === 'select') {
     return (
@@ -65,7 +71,7 @@ export default function QuestionField({ question, value, onChange }) {
     return (
       <Box>
         <Typography variant="body2" color="text.secondary" gutterBottom>{label}</Typography>
-        <Stack direction="row" flexWrap="wrap" useFlexGap spacing={1}>
+        <Stack direction="row" useFlexGap spacing={1} sx={{ flexWrap: 'wrap' }}>
           {options.map((opt) => (
             <Chip
               key={opt.value}
@@ -86,7 +92,7 @@ export default function QuestionField({ question, value, onChange }) {
     return (
       <Box>
         <Typography variant="body2" color="text.secondary" gutterBottom>{label}</Typography>
-        <Stack direction="row" spacing={1} alignItems="center">
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
           <TextField
             type="number"
             size="small"
@@ -113,7 +119,7 @@ export default function QuestionField({ question, value, onChange }) {
   if (type === 'choice') {
     return (
       <Box>
-        <Typography fontWeight={700} gutterBottom>{label}</Typography>
+        <Typography gutterBottom sx={{ fontWeight: 700 }}>{label}</Typography>
         <RadioGroup value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
           {options.map((opt) => (
             <FormControlLabel key={opt.value} value={opt.value} control={<Radio size="small" />} label={opt.label} />
@@ -155,12 +161,25 @@ export default function QuestionField({ question, value, onChange }) {
       else next[optValue] = choice
       onChange(next)
     }
+    // 閉じているときにも設定内容が分かるよう、「好き2・苦手1」のような要約を出す
+    const likeCount = Object.values(likes).filter((v) => v === 'like').length
+    const dislikeCount = Object.values(likes).filter((v) => v === 'dislike').length
+    const summary = likeCount + dislikeCount === 0
+      ? 'こだわりなし'
+      : [likeCount && `好き${likeCount}`, dislikeCount && `苦手${dislikeCount}`].filter(Boolean).join('・')
+
     return (
-      <Box>
-        <Typography fontWeight={700} gutterBottom>{label}</Typography>
+      <Accordion variant="outlined" disableGutters sx={{ borderRadius: 2, '&::before': { display: 'none' } }}>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography sx={{ fontWeight: 700, flexGrow: 1 }}>{label}</Typography>
+          <Typography variant="body2" color={summary === 'こだわりなし' ? 'text.secondary' : 'primary'} sx={{ mr: 1 }}>
+            {summary}
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails>
         <Stack spacing={1}>
           {options.map((opt) => (
-            <Stack key={opt.value} direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
+            <Stack key={opt.value} direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
               <Typography variant="body2">{opt.label}</Typography>
               <ToggleButtonGroup
                 exclusive
@@ -176,7 +195,8 @@ export default function QuestionField({ question, value, onChange }) {
             </Stack>
           ))}
         </Stack>
-      </Box>
+        </AccordionDetails>
+      </Accordion>
     )
   }
 

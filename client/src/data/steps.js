@@ -11,7 +11,7 @@ import { LIFESTYLE_QUESTIONS } from './lifestyleQuestions.js'
 //   group:    JSON 列にまとめて保存する場合の列名（省略時は1項目＝1列で保存）
 //   about:    'self'（自分について） / 'partner'（相手について）。性別で出し分ける質問に使う
 //   optional: true なら未入力のまま次へ進める
-//   questions が無いステップは、まだ中身を作っていない仮のステップ
+//   questions が無いステップは「確認」ステップ（入力状況の一覧を表示する）
 export const STEPS = [
   { title: '基本情報', table: 'profiles', about: 'self', questions: BASIC_QUESTIONS },
   { title: '結婚条件', table: 'profiles', about: 'self', questions: MARRIAGE_QUESTIONS },

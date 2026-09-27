@@ -39,10 +39,18 @@ export async function getSavedMatches(userId) {
   // 相手のプロフィールのうち、画面に出してよい項目だけを取得する
   const { data: partners, error: partnerError } = await supabaseAdmin
     .from('profiles')
-    .select('id, nickname, age, occupation, prefecture, annual_income')
+    .select('id, nickname, age, occupation, prefecture, annual_income, avatar_path')
     .in('id', results.map((r) => r.partner_id))
   if (partnerError) throw partnerError
   const partnerById = Object.fromEntries(partners.map((p) => [p.id, p]))
+
+  // 写真は非公開の場所にあるので、1時間だけ有効な閲覧用 URL をまとめて発行する
+  const avatarPaths = partners.map((p) => p.avatar_path).filter(Boolean)
+  const avatarUrlByPath = {}
+  if (avatarPaths.length > 0) {
+    const { data: signed } = await supabaseAdmin.storage.from('avatars').createSignedUrls(avatarPaths, 60 * 60)
+    for (const s of signed ?? []) avatarUrlByPath[s.path] = s.signedUrl
+  }
 
   return {
     calculatedAt: results[0].created_at,
@@ -52,6 +60,7 @@ export async function getSavedMatches(userId) {
         rank: r.rank,
         partnerId: r.partner_id,
         nickname: p.nickname,
+        avatarUrl: avatarUrlByPath[p.avatar_path] ?? null,
         age: p.age,
         occupation: p.occupation,
         prefecture: p.prefecture,

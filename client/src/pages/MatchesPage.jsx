@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link as RouterLink, useLocation } from 'react-router-dom'
 import {
-  Alert, Avatar, Box, Button, Card, CardContent, Chip, CircularProgress, Divider, LinearProgress, Stack, Typography,
+  Alert, Avatar, Box, Button, Card, CardContent, Chip, CircularProgress, Divider, LinearProgress, Skeleton, Stack,
+  Typography,
 } from '@mui/material'
 import { apiFetch } from '../lib/api.js'
 import { BASIC_QUESTIONS } from '../data/profileQuestions.js'
@@ -20,21 +21,55 @@ const labelOf = (key, value) =>
   BASIC_QUESTIONS.find((q) => q.key === key)?.options?.find((o) => o.value === value)?.label ?? value
 const conditionLabel = (key) => MUST_CONDITION_QUESTIONS.find((q) => q.key === key)?.label ?? key
 
+// AI による「おすすめの理由」。保存済みならそれを表示し、無ければサーバーに作成を頼む
+function Explanation({ partnerId, initial }) {
+  const [text, setText] = useState(initial)
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    if (initial) return
+    apiFetch(`/api/matches/${partnerId}/explanation`, { method: 'POST' })
+      .then((data) => setText(data.explanation))
+      .catch(() => setFailed(true))
+  }, [partnerId, initial])
+
+  return (
+    <Box sx={{ bgcolor: 'background.default', borderRadius: 2, p: 2 }}>
+      <Typography variant="body2" gutterBottom sx={{ fontWeight: 700 }}>おすすめの理由</Typography>
+      {text ? (
+        // 改行をそのまま表示する（pre-line）
+        <Typography variant="body2" sx={{ whiteSpace: 'pre-line', lineHeight: 1.8 }}>{text}</Typography>
+      ) : failed ? (
+        <Typography variant="body2" color="text.secondary">説明文を読み込めませんでした。</Typography>
+      ) : (
+        <>
+          <Typography variant="caption" color="text.secondary">AI が解説を作成しています…</Typography>
+          <Skeleton /><Skeleton /><Skeleton width="60%" />
+        </>
+      )}
+    </Box>
+  )
+}
+
+// 点数に応じた色（80点以上は強調、60点未満は控えめに）
+const scoreColor = (score) => (score >= 80 ? 'primary.main' : score >= 60 ? 'text.primary' : 'text.secondary')
+
 // 1人分のカード
 function MatchCard({ match }) {
   const { details } = match
   const cautions = [...details.caution.map((c) => c.topic), ...details.penalties]
 
   return (
-    <Card variant="outlined">
-      <CardContent>
+    <Card>
+      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
         {/* 上段：アイコン・名前・総合スコア */}
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Avatar sx={{ width: 56, height: 56, bgcolor: 'primary.light', fontSize: 24 }}>
+        <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+          <Avatar src={match.avatarUrl ?? undefined} sx={{ width: 56, height: 56, bgcolor: 'primary.light', fontSize: 24 }}>
             {match.nickname?.[0]}
           </Avatar>
           <Box sx={{ flexGrow: 1 }}>
-            <Typography variant="h6" fontWeight={700}>{match.nickname}</Typography>
+            <Chip label={`おすすめ ${match.rank}位`} size="small" color={match.rank === 1 ? 'primary' : 'default'} sx={{ mb: 0.5 }} />
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>{match.nickname}</Typography>
             <Typography variant="body2" color="text.secondary">
               {match.age}歳・{labelOf('occupation', match.occupation)}・{match.prefecture}
             </Typography>
@@ -42,9 +77,9 @@ function MatchCard({ match }) {
               年収 {labelOf('annual_income', match.annualIncome)}
             </Typography>
           </Box>
-          <Box textAlign="center">
+          <Box sx={{ textAlign: 'center' }}>
             <Typography variant="caption" color="text.secondary">相性</Typography>
-            <Typography variant="h4" fontWeight={700} color="primary" lineHeight={1}>
+            <Typography variant="h4" color={scoreColor(match.totalScore)} sx={{ fontWeight: 700, lineHeight: 1 }}>
               {match.totalScore}
             </Typography>
             <Typography variant="caption" color="text.secondary">点</Typography>
@@ -54,7 +89,7 @@ function MatchCard({ match }) {
         {/* 分野別スコア */}
         <Stack spacing={1} sx={{ mt: 2 }}>
           {CATEGORIES.map((c) => (
-            <Stack key={c.key} direction="row" alignItems="center" spacing={1}>
+            <Stack key={c.key} direction="row" spacing={1} sx={{ alignItems: 'center' }}>
               <Typography variant="body2" sx={{ width: 64 }}>{c.label}</Typography>
               <LinearProgress
                 variant="determinate"
@@ -73,25 +108,22 @@ function MatchCard({ match }) {
         {/* 相性が良い点・注意したい点 */}
         {details.good.length > 0 && (
           <Box sx={{ mb: 1.5 }}>
-            <Typography variant="body2" fontWeight={700} gutterBottom>相性が良いポイント</Typography>
-            <Stack direction="row" flexWrap="wrap" useFlexGap spacing={1}>
+            <Typography variant="body2" gutterBottom sx={{ fontWeight: 700 }}>相性が良いポイント</Typography>
+            <Stack direction="row" useFlexGap spacing={1} sx={{ flexWrap: 'wrap' }}>
               {details.good.map((g) => <Chip key={g.topic} label={g.topic} size="small" color="success" variant="outlined" />)}
             </Stack>
           </Box>
         )}
         {cautions.length > 0 && (
           <Box sx={{ mb: 1.5 }}>
-            <Typography variant="body2" fontWeight={700} gutterBottom>注意したいポイント</Typography>
-            <Stack direction="row" flexWrap="wrap" useFlexGap spacing={1}>
+            <Typography variant="body2" gutterBottom sx={{ fontWeight: 700 }}>注意したいポイント</Typography>
+            <Stack direction="row" useFlexGap spacing={1} sx={{ flexWrap: 'wrap' }}>
               {cautions.map((c) => <Chip key={c} label={c} size="small" color="warning" variant="outlined" />)}
             </Stack>
           </Box>
         )}
 
-        {/* AI による説明（Phase 10 で追加） */}
-        <Typography variant="body2" color="text.secondary">
-          {match.explanation ?? 'なぜこの人がおすすめなのか、AI による解説は準備中です。'}
-        </Typography>
+        <Explanation partnerId={match.partnerId} initial={match.explanation} />
       </CardContent>
     </Card>
   )
@@ -103,7 +135,7 @@ function NoMatches({ exclusions }) {
   return (
     <Card variant="outlined">
       <CardContent>
-        <Typography fontWeight={700} gutterBottom>条件に合うお相手が見つかりませんでした</Typography>
+        <Typography gutterBottom sx={{ fontWeight: 700 }}>条件に合うお相手が見つかりませんでした</Typography>
         {exclusions && (
           <>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
@@ -155,7 +187,7 @@ export default function MatchesPage() {
 
   if (loading) {
     return (
-      <Box textAlign="center" sx={{ py: 6 }}>
+      <Box sx={{ textAlign: 'center', py: 6 }}>
         <CircularProgress />
         <Typography color="text.secondary" sx={{ mt: 2 }}>相性の良いお相手を探しています…</Typography>
       </Box>
@@ -164,7 +196,12 @@ export default function MatchesPage() {
 
   return (
     <Stack spacing={2}>
-      <Typography variant="h5" fontWeight={700}>あなたへのおすすめ</Typography>
+      <Box>
+        <Typography variant="h5" sx={{ fontWeight: 700 }}>あなたへのおすすめ</Typography>
+        <Typography variant="body2" color="text.secondary">
+          相性スコアは診断の回答からプログラムで計算しています。「おすすめの理由」の文章は AI が作成しています。
+        </Typography>
+      </Box>
 
       {error && (
         <Alert severity="error" action={error.includes('診断') && <Button component={RouterLink} to="/diagnosis">診断へ</Button>}>

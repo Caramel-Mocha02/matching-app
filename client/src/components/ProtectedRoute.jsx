@@ -8,7 +8,7 @@ export default function ProtectedRoute() {
 
   if (loading) {
     return (
-      <Box textAlign="center" sx={{ py: 6 }}>
+      <Box sx={{ textAlign: 'center', py: 6 }}>
         <CircularProgress />
       </Box>
     )

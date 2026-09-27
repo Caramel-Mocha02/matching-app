@@ -29,7 +29,7 @@ export default function LoginPage() {
     <Card variant="outlined">
       <CardContent>
         <Stack component="form" spacing={2} onSubmit={handleSubmit}>
-          <Typography variant="h5" fontWeight={700}>ログイン</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 700 }}>ログイン</Typography>
           {error && <Alert severity="error">{error}</Alert>}
           <TextField
             label="メールアドレス"
@@ -50,7 +50,7 @@ export default function LoginPage() {
           <Button type="submit" variant="contained" size="large" disabled={submitting}>
             {submitting ? 'ログイン中…' : 'ログイン'}
           </Button>
-          <Typography variant="body2" textAlign="center">
+          <Typography variant="body2" sx={{ textAlign: 'center' }}>
             アカウントをお持ちでない方は <Link component={RouterLink} to="/signup">新規登録</Link>
           </Typography>
         </Stack>

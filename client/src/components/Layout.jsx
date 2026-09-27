@@ -16,16 +16,14 @@ export default function Layout() {
   return (
     <>
       <AppBar position="sticky" color="inherit" elevation={0} sx={{ borderBottom: 1, borderColor: 'divider' }}>
-        <Toolbar>
-          <FavoriteIcon color="primary" sx={{ mr: 1 }} />
-          <Typography
-            variant="h6"
-            component={RouterLink}
-            to="/"
-            sx={{ flexGrow: 1, color: 'text.primary', textDecoration: 'none', fontWeight: 700 }}
-          >
-            タイパ婚活
-          </Typography>
+        <Toolbar sx={{ gap: { xs: 0, sm: 1 } }}>
+          <Box component={RouterLink} to="/" sx={{ display: 'flex', alignItems: 'center', flexGrow: 1, textDecoration: 'none' }}>
+            <FavoriteIcon color="primary" sx={{ mr: 1 }} />
+            {/* スマホ幅ではボタンが並びきらないので、ロゴの文字を隠す */}
+            <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 700, display: { xs: 'none', sm: 'block' } }}>
+              タイパ婚活
+            </Typography>
+          </Box>
 
           {/* ログイン中かどうかでボタンを切り替える */}
           {user ? (

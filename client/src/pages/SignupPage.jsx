@@ -43,7 +43,7 @@ export default function SignupPage() {
     <Card variant="outlined">
       <CardContent>
         <Stack component="form" spacing={2} onSubmit={handleSubmit}>
-          <Typography variant="h5" fontWeight={700}>新規登録</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 700 }}>新規登録</Typography>
           {error && <Alert severity="error">{error}</Alert>}
           {info && <Alert severity="success">{info}</Alert>}
           <TextField
@@ -65,7 +65,7 @@ export default function SignupPage() {
           <Button type="submit" variant="contained" size="large" disabled={submitting}>
             {submitting ? '登録中…' : '登録する'}
           </Button>
-          <Typography variant="body2" textAlign="center">
+          <Typography variant="body2" sx={{ textAlign: 'center' }}>
             すでにアカウントをお持ちの方は <Link component={RouterLink} to="/login">ログイン</Link>
           </Typography>
         </Stack>

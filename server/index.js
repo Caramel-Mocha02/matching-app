@@ -3,6 +3,7 @@ import express from 'express'
 import cors from 'cors'
 import { supabaseAdmin } from './lib/supabaseAdmin.js'
 import { findMatches, getSavedMatches } from './matching/index.js'
+import { getExplanation } from './matching/explain.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -45,6 +46,16 @@ app.post('/api/matches', requireUser, async (req, res) => {
   } catch (err) {
     console.error(err)
     res.status(err.status ?? 500).json({ error: err.status ? err.message : 'マッチングに失敗しました。' })
+  }
+})
+
+// おすすめの理由（AI による説明文）を返す。初回だけ作成し、以降は保存済みのものを返す
+app.post('/api/matches/:partnerId/explanation', requireUser, async (req, res) => {
+  try {
+    res.json(await getExplanation(req.user.id, req.params.partnerId))
+  } catch (err) {
+    console.error(err)
+    res.status(err.status ?? 500).json({ error: err.status ? err.message : '説明文の作成に失敗しました。' })
   }
 })
 
