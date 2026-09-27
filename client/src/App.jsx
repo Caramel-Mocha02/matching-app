@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout.jsx'
+import ProtectedRoute from './components/ProtectedRoute.jsx'
 import HomePage from './pages/HomePage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import SignupPage from './pages/SignupPage.jsx'
@@ -14,8 +15,11 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
-        <Route path="/diagnosis" element={<DiagnosisPage />} />
-        <Route path="/matches" element={<MatchesPage />} />
+        {/* ここから下はログインが必要な画面 */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/diagnosis" element={<DiagnosisPage />} />
+          <Route path="/matches" element={<MatchesPage />} />
+        </Route>
       </Route>
     </Routes>
   )

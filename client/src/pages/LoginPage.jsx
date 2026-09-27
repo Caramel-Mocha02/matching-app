@@ -1,17 +1,54 @@
-import { Link as RouterLink } from 'react-router-dom'
-import { Button, Card, CardContent, Link, Stack, TextField, Typography } from '@mui/material'
+import { useState } from 'react'
+import { Link as RouterLink, useNavigate } from 'react-router-dom'
+import { Alert, Button, Card, CardContent, Link, Stack, TextField, Typography } from '@mui/material'
+import { useAuth } from '../contexts/AuthContext.jsx'
 
-// ログイン画面（見た目のみ。Phase 2 で Supabase Auth とつなぐ）
 export default function LoginPage() {
+  const { signIn } = useAuth()
+  const navigate = useNavigate()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault() // フォーム送信でページが再読み込みされるのを防ぐ
+    setError('')
+    setSubmitting(true)
+    const { error } = await signIn(email, password)
+    setSubmitting(false)
+
+    if (error) {
+      setError('メールアドレスまたはパスワードが正しくありません。')
+      return
+    }
+    navigate('/diagnosis')
+  }
+
   return (
     <Card variant="outlined">
       <CardContent>
-        <Stack spacing={2}>
+        <Stack component="form" spacing={2} onSubmit={handleSubmit}>
           <Typography variant="h5" fontWeight={700}>ログイン</Typography>
-          <TextField label="メールアドレス" type="email" fullWidth />
-          <TextField label="パスワード" type="password" fullWidth />
-          <Button variant="contained" size="large" disabled>
-            ログイン（Phase 2 で実装）
+          {error && <Alert severity="error">{error}</Alert>}
+          <TextField
+            label="メールアドレス"
+            type="email"
+            required
+            fullWidth
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <TextField
+            label="パスワード"
+            type="password"
+            required
+            fullWidth
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <Button type="submit" variant="contained" size="large" disabled={submitting}>
+            {submitting ? 'ログイン中…' : 'ログイン'}
           </Button>
           <Typography variant="body2" textAlign="center">
             アカウントをお持ちでない方は <Link component={RouterLink} to="/signup">新規登録</Link>

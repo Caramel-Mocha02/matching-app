@@ -4,15 +4,18 @@ import { BrowserRouter } from 'react-router-dom'
 import { ThemeProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import theme from './theme.js'
+import { AuthProvider } from './contexts/AuthContext.jsx'
 import App from './App.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    {/* ThemeProvider: MUIのテーマを全画面に適用 / BrowserRouter: URLで画面を切り替える */}
+    {/* ThemeProvider: MUIのテーマを全画面に適用 / BrowserRouter: URLで画面を切り替える / AuthProvider: ログイン状態を共有 */}
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <BrowserRouter>
-        <App />
+        <AuthProvider>
+          <App />
+        </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>
   </StrictMode>,
