@@ -1,6 +1,8 @@
 import 'dotenv/config' // .env ファイルの内容を process.env に読み込む
 import express from 'express'
 import cors from 'cors'
+import { supabaseAdmin } from './lib/supabaseAdmin.js'
+import { findMatches } from './matching/index.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -8,9 +10,32 @@ const PORT = process.env.PORT || 3001
 app.use(cors())
 app.use(express.json()) // JSON形式のリクエストを受け取れるようにする
 
+// ログイン確認：ブラウザから送られてきたアクセストークンで、誰からのリクエストかを調べる
+async function requireUser(req, res, next) {
+  const token = req.headers.authorization?.replace('Bearer ', '')
+  if (!token) return res.status(401).json({ error: 'ログインが必要です。' })
+
+  const { data, error } = await supabaseAdmin.auth.getUser(token)
+  if (error || !data.user) return res.status(401).json({ error: 'ログインが必要です。' })
+
+  req.user = data.user
+  next()
+}
+
 // 動作確認用：サーバーが起動しているかを返す
 app.get('/api/health', (req, res) => {
   res.json({ ok: true })
+})
+
+// マッチングを実行して、おすすめの相手を返す
+app.post('/api/matches', requireUser, async (req, res) => {
+  try {
+    const result = await findMatches(req.user.id)
+    res.json(result)
+  } catch (err) {
+    console.error(err)
+    res.status(err.status ?? 500).json({ error: err.status ? err.message : 'マッチングに失敗しました。' })
+  }
 })
 
 app.listen(PORT, () => {
