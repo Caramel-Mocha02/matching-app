@@ -1,9 +1,10 @@
 // 性格・内面の質問。
 // 選択肢は「一方の端 → もう一方の端」の順に並べる（相性ルールを作りやすくするため）。
 // value は相性ルールで使う名前なので、後から変えないこと（label は自由に変えてよい）。
+// topic は結果画面の「相性が良い点」などに表示する短い見出し。
 export const PERSONALITY_QUESTIONS = [
   {
-    key: 'planning', label: '旅行や休日の予定はどのように立てますか？', type: 'choice',
+    key: 'planning', topic: '計画性', label: '旅行や休日の予定はどのように立てますか？', type: 'choice',
     options: [
       { value: 'very_planned', label: '細かく計画を立てる' },
       { value: 'planned', label: '大まかに決めておく' },
@@ -12,7 +13,7 @@ export const PERSONALITY_QUESTIONS = [
     ],
   },
   {
-    key: 'together_time', label: '恋人・配偶者とはどの程度一緒に過ごしたいですか？', type: 'choice',
+    key: 'together_time', topic: '一緒に過ごす時間', label: '恋人・配偶者とはどの程度一緒に過ごしたいですか？', type: 'choice',
     options: [
       { value: 'always', label: 'できるだけ一緒にいたい' },
       { value: 'mostly', label: '基本は一緒、たまに一人の時間も欲しい' },
@@ -21,7 +22,7 @@ export const PERSONALITY_QUESTIONS = [
     ],
   },
   {
-    key: 'friends', label: '友人との付き合いをどの程度大切にしますか？', type: 'choice',
+    key: 'friends', topic: '友人付き合い', label: '友人との付き合いをどの程度大切にしますか？', type: 'choice',
     options: [
       { value: 'very', label: '週に何度も会うくらい大切' },
       { value: 'often', label: '月に数回は会いたい' },
@@ -30,7 +31,7 @@ export const PERSONALITY_QUESTIONS = [
     ],
   },
   {
-    key: 'decision', label: '2人で何かを決めるとき、どうしたいですか？', type: 'choice',
+    key: 'decision', topic: '物事の決め方', label: '2人で何かを決めるとき、どうしたいですか？', type: 'choice',
     options: [
       { value: 'lead', label: '自分が決めてリードしたい' },
       { value: 'propose', label: '自分が案を出して相談したい' },
@@ -39,7 +40,7 @@ export const PERSONALITY_QUESTIONS = [
     ],
   },
   {
-    key: 'affection', label: '愛情表現はどのくらいしたい（されたい）ですか？', type: 'choice',
+    key: 'affection', topic: '愛情表現', label: '愛情表現はどのくらいしたい（されたい）ですか？', type: 'choice',
     options: [
       { value: 'lots', label: '言葉や態度で頻繁に伝え合いたい' },
       { value: 'moderate', label: 'ときどき伝え合えれば十分' },
@@ -47,7 +48,7 @@ export const PERSONALITY_QUESTIONS = [
     ],
   },
   {
-    key: 'contact', label: '離れているとき、連絡はどのくらい取りたいですか？', type: 'choice',
+    key: 'contact', topic: '連絡頻度', label: '離れているとき、連絡はどのくらい取りたいですか？', type: 'choice',
     options: [
       { value: 'many', label: '1日に何度もやりとりしたい' },
       { value: 'daily', label: '1日1回くらいは連絡したい' },
@@ -55,7 +56,7 @@ export const PERSONALITY_QUESTIONS = [
     ],
   },
   {
-    key: 'mood', label: '気分の浮き沈みはどのくらいありますか？', type: 'choice',
+    key: 'mood', topic: '気分の安定', label: '気分の浮き沈みはどのくらいありますか？', type: 'choice',
     options: [
       { value: 'stable', label: 'ほとんどない' },
       { value: 'slight', label: '少しある' },
@@ -64,7 +65,7 @@ export const PERSONALITY_QUESTIONS = [
     ],
   },
   {
-    key: 'opposite_sex_friends', label: '相手が異性の友人と2人で食事に行くことをどう思いますか？', type: 'choice',
+    key: 'opposite_sex_friends', topic: '異性の友人との付き合い', label: '相手が異性の友人と2人で食事に行くことをどう思いますか？', type: 'choice',
     options: [
       { value: 'ok', label: '特に気にしない' },
       { value: 'tell_me', label: '事前に言ってくれれば大丈夫' },

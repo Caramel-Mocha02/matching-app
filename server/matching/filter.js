@@ -50,3 +50,18 @@ export function filterCandidates(me, candidates) {
     return true
   })
 }
+
+// 0人になったときの手がかり：異性のうち、各条件で何人が除外されたかを数える
+//   → { total: 異性の人数, byCondition: { annual_income: 8, age: 5 }, byPartner: 相手の条件で除外された人数 }
+export function countExclusions(me, candidates) {
+  const opposite = candidates.filter((c) => c.profile.gender !== me.profile.gender)
+  const byCondition = {}
+  let byPartner = 0
+  for (const c of opposite) {
+    for (const key of unmetConditions(c.profile, me.preferences.must_conditions)) {
+      byCondition[key] = (byCondition[key] ?? 0) + 1
+    }
+    if (unmetConditions(me.profile, c.preferences.must_conditions).length > 0) byPartner++
+  }
+  return { total: opposite.length, byCondition, byPartner }
+}

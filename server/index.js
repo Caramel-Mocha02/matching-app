@@ -2,7 +2,7 @@ import 'dotenv/config' // .env ファイルの内容を process.env に読み込
 import express from 'express'
 import cors from 'cors'
 import { supabaseAdmin } from './lib/supabaseAdmin.js'
-import { findMatches } from './matching/index.js'
+import { findMatches, getSavedMatches } from './matching/index.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -27,7 +27,17 @@ app.get('/api/health', (req, res) => {
   res.json({ ok: true })
 })
 
-// マッチングを実行して、おすすめの相手を返す
+// 保存済みのマッチング結果を返す（計算はしない）
+app.get('/api/matches', requireUser, async (req, res) => {
+  try {
+    res.json(await getSavedMatches(req.user.id))
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: '結果の取得に失敗しました。' })
+  }
+})
+
+// マッチングを計算し直して、おすすめの相手を返す
 app.post('/api/matches', requireUser, async (req, res) => {
   try {
     const result = await findMatches(req.user.id)

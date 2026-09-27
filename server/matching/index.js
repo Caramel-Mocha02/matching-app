@@ -1,6 +1,6 @@
 // マッチング全体の流れ：データ取得 → 必須条件で絞り込み → スコア計算 → 上位を保存
 import { supabaseAdmin } from '../lib/supabaseAdmin.js'
-import { filterCandidates } from './filter.js'
+import { filterCandidates, countExclusions } from './filter.js'
 import { scoreMatch } from './score.js'
 
 const MAX_RESULTS = 5
@@ -26,6 +26,46 @@ async function loadAllUsers() {
 const hasCompletedDiagnosis = (user) =>
   ['personality', 'communication', 'lifestyle'].every((key) => Object.keys(user.profile[key] ?? {}).length > 0)
 
+// 保存済みの結果を取り出す（画面を開いたとき用。計算し直さないので速く、AI の説明文も残る）
+export async function getSavedMatches(userId) {
+  const { data: results, error } = await supabaseAdmin
+    .from('matching_results')
+    .select('*')
+    .eq('user_id', userId)
+    .order('rank')
+  if (error) throw error
+  if (results.length === 0) return { matches: [] }
+
+  // 相手のプロフィールのうち、画面に出してよい項目だけを取得する
+  const { data: partners, error: partnerError } = await supabaseAdmin
+    .from('profiles')
+    .select('id, nickname, age, occupation, prefecture, annual_income')
+    .in('id', results.map((r) => r.partner_id))
+  if (partnerError) throw partnerError
+  const partnerById = Object.fromEntries(partners.map((p) => [p.id, p]))
+
+  return {
+    calculatedAt: results[0].created_at,
+    matches: results.map((r) => {
+      const p = partnerById[r.partner_id] ?? {}
+      return {
+        rank: r.rank,
+        partnerId: r.partner_id,
+        nickname: p.nickname,
+        age: p.age,
+        occupation: p.occupation,
+        prefecture: p.prefecture,
+        annualIncome: p.annual_income,
+        totalScore: r.total_score,
+        categoryScores: r.category_scores,
+        details: r.details,
+        explanation: r.explanation,
+      }
+    }),
+  }
+}
+
+// マッチングを計算し直して保存し、結果を返す
 export async function findMatches(userId) {
   const users = await loadAllUsers()
   const me = users.find((u) => u.id === userId)
@@ -62,20 +102,10 @@ export async function findMatches(userId) {
     if (insertError) throw insertError
   }
 
-  // 画面に返すのは、公開してよい項目だけ
+  const saved = await getSavedMatches(userId)
   return {
+    ...saved,
     candidateCount: candidates.length,
-    matches: scored.map((r, i) => ({
-      rank: i + 1,
-      partnerId: r.partner.id,
-      nickname: r.partner.profile.nickname,
-      age: r.partner.profile.age,
-      occupation: r.partner.profile.occupation,
-      prefecture: r.partner.profile.prefecture,
-      annualIncome: r.partner.profile.annual_income,
-      totalScore: r.total,
-      categoryScores: r.categoryScores,
-      details: r.details,
-    })),
+    exclusions: countExclusions(me, others), // 0人のときに「どの条件で除外されたか」を表示するため
   }
 }

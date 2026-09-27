@@ -29,7 +29,11 @@ export default function Layout() {
 
           {/* ログイン中かどうかでボタンを切り替える */}
           {user ? (
-            <Button onClick={handleLogout}>ログアウト</Button>
+            <>
+              <Button component={RouterLink} to="/diagnosis">診断</Button>
+              <Button component={RouterLink} to="/matches">おすすめ</Button>
+              <Button onClick={handleLogout} color="inherit">ログアウト</Button>
+            </>
           ) : (
             <>
               <Button component={RouterLink} to="/login">ログイン</Button>

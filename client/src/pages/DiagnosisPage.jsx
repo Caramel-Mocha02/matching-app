@@ -84,7 +84,7 @@ export default function DiagnosisPage() {
       }
     }
 
-    if (isLast) navigate('/matches')
+    if (isLast) navigate('/matches', { state: { recalculate: true } }) // 結果画面で計算し直す印
     else setStep(step + 1)
   }
 

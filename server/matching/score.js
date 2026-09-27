@@ -61,6 +61,7 @@ function scoreCategory(category, profileA, profileB) {
     if (score == null) continue // どちらかが未回答の質問は計算に入れない
     items.push({
       category,
+      topic: q.topic ?? q.label, // 画面に出す短い見出し（結婚条件の質問は label がすでに短い）
       question: q.label,
       mine: labelOf(q, a),
       theirs: labelOf(q, b),
@@ -145,7 +146,7 @@ export function scoreMatch(me, other) {
 
   // 説明文（Phase 10）の材料：相性が良い点・注意したい点
   const allItems = [...personality.items, ...communication.items, ...lifestyle.items]
-  const strip = (it) => ({ category: it.category, question: it.question, mine: it.mine, theirs: it.theirs, score: it.score })
+  const strip = (it) => ({ category: it.category, topic: it.topic, question: it.question, mine: it.mine, theirs: it.theirs, score: it.score })
   const good = allItems.filter((it) => it.score >= GOOD_POINT_MIN).sort((a, b) => b.score - a.score).slice(0, 5).map(strip)
   const caution = allItems.filter((it) => it.score <= CAUTION_POINT_MAX).sort((a, b) => a.score - b.score).slice(0, 5).map(strip)
 
