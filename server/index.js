@@ -71,11 +71,11 @@ app.get('/api/likes', requireUser, async (req, res) => {
   }
 })
 
-// メッセージの相手一覧を返す
-// ※ メッセージの送信・受信はブラウザから Supabase に直接行う（RLS でマッチングした相手に限定している）
+// メッセージの相手一覧を返す（?with=相手のID を付けると、まだやりとりのない相手とのチャットも開ける）
+// ※ メッセージの送信・受信はブラウザから Supabase に直接行う（RLS で送れる相手を制限している）
 app.get('/api/conversations', requireUser, async (req, res) => {
   try {
-    res.json(await getConversations(req.user.id))
+    res.json(await getConversations(req.user.id, req.query.with))
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'メッセージの一覧を取得できませんでした。' })

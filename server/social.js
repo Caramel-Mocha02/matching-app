@@ -5,22 +5,43 @@ import { getPublicProfiles } from './lib/publicProfiles.js'
 import { loadAllUsers, hasCompletedDiagnosis } from './matching/index.js'
 import { scoreMatch } from './matching/score.js'
 
-// 自分に関係するいいねを取得する
-async function loadLikes(userId) {
-  const { data, error } = await supabaseAdmin
-    .from('likes')
-    .select('from_user, to_user, created_at')
-    .or(`from_user.eq.${userId},to_user.eq.${userId}`)
-  if (error) throw error
-  return data
+// 自分に関係するいいね・メッセージ・おすすめの相手をまとめて取得する
+async function loadSocialData(userId) {
+  const [likesRes, messagesRes, resultsRes] = await Promise.all([
+    supabaseAdmin.from('likes').select('from_user, to_user, created_at').or(`from_user.eq.${userId},to_user.eq.${userId}`),
+    supabaseAdmin
+      .from('messages')
+      .select('sender_id, receiver_id, body, created_at, read_at')
+      .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+      .order('created_at', { ascending: false }) // 新しい順
+      .limit(2000),
+    supabaseAdmin.from('matching_results').select('partner_id').eq('user_id', userId),
+  ])
+  for (const res of [likesRes, messagesRes, resultsRes]) if (res.error) throw res.error
+
+  const likes = likesRes.data
+  const messages = messagesRes.data
+  const likedIds = new Set(likes.filter((l) => l.from_user === userId).map((l) => l.to_user))
+  const likedMeIds = new Set(likes.filter((l) => l.to_user === userId).map((l) => l.from_user))
+  const talkedIds = new Set(messages.map((m) => (m.sender_id === userId ? m.receiver_id : m.sender_id)))
+  const recommendedIds = new Set(resultsRes.data.map((r) => r.partner_id))
+
+  // メッセージを送れる相手（SQL の RLS と同じ条件）：
+  //   おすすめに表示された相手 / 自分にいいねをくれた相手 / すでにやりとりが始まっている相手
+  const canMessage = (id) => recommendedIds.has(id) || likedMeIds.has(id) || talkedIds.has(id)
+
+  return { likes, messages, likedIds, likedMeIds, talkedIds, canMessage }
 }
 
-// いいねの一覧 → { received: もらったいいね, sent: 送ったいいね, matched: マッチング成立 }
+// いいねの一覧 → { received: もらったいいね, sent: 送ったいいね, matched: お互いにいいね }
 export async function getLikesOverview(userId) {
-  const likes = await loadLikes(userId)
-  const sentAt = Object.fromEntries(likes.filter((l) => l.from_user === userId).map((l) => [l.to_user, l.created_at]))
-  const receivedAt = Object.fromEntries(likes.filter((l) => l.to_user === userId).map((l) => [l.from_user, l.created_at]))
-  const partnerIds = [...new Set([...Object.keys(sentAt), ...Object.keys(receivedAt)])]
+  const { likes, likedIds, likedMeIds, canMessage } = await loadSocialData(userId)
+  const likedAt = {}
+  for (const l of likes) {
+    const id = l.from_user === userId ? l.to_user : l.from_user
+    if (!likedAt[id] || l.created_at > likedAt[id]) likedAt[id] = l.created_at // 新しいほうの日時
+  }
+  const partnerIds = Object.keys(likedAt)
 
   const [profileById, users] = await Promise.all([getPublicProfiles(partnerIds), loadAllUsers()])
 
@@ -33,48 +54,45 @@ export async function getLikesOverview(userId) {
     return scoreMatch(me, partner).total
   }
 
-  const toItem = (id, likedAt) => ({ ...profileById[id], partnerId: id, likedAt, totalScore: scoreWith(id) })
+  const toItem = (id) => ({
+    ...profileById[id],
+    partnerId: id,
+    likedAt: likedAt[id],
+    totalScore: scoreWith(id),
+    canMessage: canMessage(id),
+  })
   const byNewest = (a, b) => b.likedAt.localeCompare(a.likedAt)
+  const pick = (filter) => partnerIds.filter(filter).map(toItem).sort(byNewest)
 
   return {
-    received: partnerIds.filter((id) => receivedAt[id] && !sentAt[id]).map((id) => toItem(id, receivedAt[id])).sort(byNewest),
-    sent: partnerIds.filter((id) => sentAt[id] && !receivedAt[id]).map((id) => toItem(id, sentAt[id])).sort(byNewest),
-    matched: partnerIds
-      .filter((id) => sentAt[id] && receivedAt[id])
-      // マッチング成立日時 = 2人のいいねのうち、後のほう
-      .map((id) => toItem(id, sentAt[id] > receivedAt[id] ? sentAt[id] : receivedAt[id]))
-      .sort(byNewest),
+    received: pick((id) => likedMeIds.has(id) && !likedIds.has(id)),
+    sent: pick((id) => likedIds.has(id) && !likedMeIds.has(id)),
+    matched: pick((id) => likedIds.has(id) && likedMeIds.has(id)),
   }
 }
 
-// メッセージの相手一覧（マッチング成立した相手）→ 最後のメッセージと未読数つき
-export async function getConversations(userId) {
-  const likes = await loadLikes(userId)
-  const sent = new Set(likes.filter((l) => l.from_user === userId).map((l) => l.to_user))
-  const matchedIds = likes.filter((l) => l.to_user === userId && sent.has(l.from_user)).map((l) => l.from_user)
-  if (matchedIds.length === 0) return { conversations: [] }
+// メッセージの相手一覧 → 最後のメッセージと未読数つき
+//   一覧に出るのは「やりとりがある相手」と「お互いにいいねした相手」。
+//   withPartnerId を指定すると、まだやりとりのない相手でも（送れる相手なら）一覧に加える（チャットを始めるため）
+export async function getConversations(userId, withPartnerId) {
+  const { messages, likedIds, likedMeIds, talkedIds, canMessage } = await loadSocialData(userId)
+  const ids = new Set([...talkedIds, ...[...likedIds].filter((id) => likedMeIds.has(id))])
+  if (withPartnerId && canMessage(withPartnerId)) ids.add(withPartnerId)
+  if (ids.size === 0) return { conversations: [] }
 
-  const [profileById, messagesRes] = await Promise.all([
-    getPublicProfiles(matchedIds),
-    supabaseAdmin
-      .from('messages')
-      .select('sender_id, receiver_id, body, created_at, read_at')
-      .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
-      .order('created_at', { ascending: false })
-      .limit(2000),
-  ])
-  if (messagesRes.error) throw messagesRes.error
-
-  const conversations = matchedIds.map((id) => {
-    const withPartner = messagesRes.data.filter((m) => m.sender_id === id || m.receiver_id === id)
-    const last = withPartner[0] // 新しい順に並んでいるので、先頭が最後のメッセージ
-    return {
-      ...profileById[id],
-      partnerId: id,
-      lastMessage: last ? { body: last.body, createdAt: last.created_at, fromMe: last.sender_id === userId } : null,
-      unreadCount: withPartner.filter((m) => m.sender_id === id && !m.read_at).length,
-    }
-  })
+  const profileById = await getPublicProfiles([...ids])
+  const conversations = [...ids]
+    .filter((id) => profileById[id]) // 退会した相手などは除く
+    .map((id) => {
+      const withPartner = messages.filter((m) => m.sender_id === id || m.receiver_id === id)
+      const last = withPartner[0] // 新しい順に並んでいるので、先頭が最後のメッセージ
+      return {
+        ...profileById[id],
+        partnerId: id,
+        lastMessage: last ? { body: last.body, createdAt: last.created_at, fromMe: last.sender_id === userId } : null,
+        unreadCount: withPartner.filter((m) => m.sender_id === id && !m.read_at).length,
+      }
+    })
 
   // 最近やりとりした相手を上に（まだやりとりしていない相手はその下）
   conversations.sort((a, b) => (b.lastMessage?.createdAt ?? '').localeCompare(a.lastMessage?.createdAt ?? ''))

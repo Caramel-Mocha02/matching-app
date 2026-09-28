@@ -8,6 +8,7 @@ import { apiFetch } from '../lib/api.js'
 import { labelOf, profileLine } from '../lib/labels.js'
 import { MUST_CONDITION_QUESTIONS } from '../data/mustConditionQuestions.js'
 import LikeButton from '../components/LikeButton.jsx'
+import ChatIcon from '@mui/icons-material/Chat'
 
 const CATEGORIES = [
   { key: 'personality', label: '性格' },
@@ -121,8 +122,12 @@ function MatchCard({ match }) {
 
         <Explanation partnerId={match.partnerId} initial={match.explanation} />
 
-        <Box sx={{ mt: 2 }}>
+        {/* いいね（興味を伝える）と、メッセージ（いいねを待たずにすぐ送れる） */}
+        <Box sx={{ mt: 2, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, alignItems: 'start' }}>
           <LikeButton partnerId={match.partnerId} liked={match.liked} likedMe={match.likedMe} fullWidth />
+          <Button component={RouterLink} to={`/messages/${match.partnerId}`} variant="contained" startIcon={<ChatIcon />}>
+            メッセージ
+          </Button>
         </Box>
       </CardContent>
     </Card>

@@ -9,7 +9,7 @@ import LikeButton from '../components/LikeButton.jsx'
 
 const TABS = [
   { key: 'received', label: 'もらったいいね', empty: 'まだいいねは届いていません。' },
-  { key: 'matched', label: 'マッチング成立', empty: 'まだマッチングした相手はいません。お互いにいいねするとマッチングします。' },
+  { key: 'matched', label: 'お互いにいいね', empty: 'まだお互いにいいねした相手はいません。' },
   { key: 'sent', label: '送ったいいね', empty: 'まだいいねを送っていません。「おすすめ」からいいねを送ってみましょう。' },
 ]
 
@@ -34,17 +34,19 @@ function PartnerCard({ partner, tab, onLiked }) {
           )}
         </Stack>
 
-        {tab === 'received' && <LikeButton partnerId={partner.partnerId} liked={false} likedMe fullWidth onLiked={onLiked} />}
-        {tab === 'matched' && (
-          <Button component={RouterLink} to={`/messages/${partner.partnerId}`} variant="contained" fullWidth>
-            メッセージを送る
-          </Button>
-        )}
-        {tab === 'sent' && (
-          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
-            お相手からのいいねを待っています
-          </Typography>
-        )}
+        <Box sx={{ display: 'grid', gridTemplateColumns: tab === 'received' ? '1fr 1fr' : '1fr', gap: 1, alignItems: 'start' }}>
+          {tab === 'received' && <LikeButton partnerId={partner.partnerId} liked={false} likedMe fullWidth onLiked={onLiked} />}
+          {/* いいねを待たずにメッセージを送れる（送れる相手のときだけ表示） */}
+          {partner.canMessage ? (
+            <Button component={RouterLink} to={`/messages/${partner.partnerId}`} variant="contained" fullWidth>
+              メッセージを送る
+            </Button>
+          ) : (
+            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
+              お相手からのいいねかメッセージを待っています
+            </Typography>
+          )}
+        </Box>
       </CardContent>
     </Card>
   )

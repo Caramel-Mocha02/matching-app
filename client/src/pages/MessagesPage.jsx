@@ -27,11 +27,11 @@ function ConversationList({ conversations, selectedId }) {
   if (conversations.length === 0) {
     return (
       <Box sx={{ p: 3 }}>
-        <Typography color="text.secondary" gutterBottom>まだマッチングした相手がいません。</Typography>
+        <Typography color="text.secondary" gutterBottom>まだやりとりしている相手がいません。</Typography>
         <Typography variant="body2" color="text.secondary" gutterBottom>
-          お互いにいいねするとマッチングして、メッセージを送れるようになります。
+          「おすすめ」に表示された相手には、いいねを待たずにメッセージを送れます。
         </Typography>
-        <Button component={RouterLink} to="/likes" sx={{ mt: 1 }}>いいねを確認する</Button>
+        <Button component={RouterLink} to="/matches" sx={{ mt: 1 }}>おすすめを見る</Button>
       </Box>
     )
   }
@@ -67,7 +67,7 @@ function ConversationList({ conversations, selectedId }) {
               )}
             </Stack>
             <Typography variant="body2" color="text.secondary" noWrap>
-              {c.lastMessage ? `${c.lastMessage.fromMe ? 'あなた：' : ''}${c.lastMessage.body}` : 'マッチングしました！最初のメッセージを送ってみましょう'}
+              {c.lastMessage ? `${c.lastMessage.fromMe ? 'あなた：' : ''}${c.lastMessage.body}` : '最初のメッセージを送ってみましょう'}
             </Typography>
           </Box>
         </ButtonBase>
@@ -162,7 +162,7 @@ function ChatPanel({ partner, onActivity }) {
         {messages === null && !error && <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress size={24} /></Box>}
         {messages?.length === 0 && (
           <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
-            マッチングしました！まずは挨拶から始めてみましょう。
+            まずは挨拶から始めてみましょう。
           </Typography>
         )}
         <Stack spacing={1}>
@@ -231,11 +231,12 @@ export default function MessagesPage() {
   const [conversations, setConversations] = useState(null)
   const [error, setError] = useState('')
 
+  // 相手を選んでいるときは ?with=相手のID を付ける（まだやりとりのない相手とも会話を始められるように）
   const loadConversations = useCallback(() => {
-    apiFetch('/api/conversations')
+    apiFetch(partnerId ? `/api/conversations?with=${partnerId}` : '/api/conversations')
       .then((data) => setConversations(data.conversations))
       .catch((err) => setError(err.message))
-  }, [])
+  }, [partnerId])
 
   // 一覧を読み込む。メッセージが届いたら、未読数や最後のメッセージを更新するため読み直す
   useEffect(() => {
@@ -279,7 +280,7 @@ export default function MessagesPage() {
             <Stack sx={{ height: '100%', alignItems: 'center', justifyContent: 'center', p: 3 }}>
               <Typography color="text.secondary" sx={{ textAlign: 'center' }}>
                 {partnerId
-                  ? 'この相手とはまだマッチングしていないため、メッセージを送れません。'
+                  ? 'この相手にはメッセージを送れません。「おすすめ」に表示された相手か、いいねをくれた相手に送れます。'
                   : '左の一覧から、メッセージを送る相手を選んでください。'}
               </Typography>
             </Stack>
