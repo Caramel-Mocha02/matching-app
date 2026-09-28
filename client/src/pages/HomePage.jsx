@@ -15,9 +15,18 @@ export default function HomePage() {
   const { user } = useAuth()
 
   return (
-    <Stack spacing={4}>
-      <Box sx={{ textAlign: 'center', pt: 2 }}>
-        <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, fontSize: { xs: 28, sm: 34 } }}>
+    // 横長の画面ではキャッチコピー（左）と特徴（右）を横に並べ、スマホでは縦に並べる
+    <Box
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', md: '1.2fr 1fr' },
+        gap: { xs: 4, md: 6 },
+        alignItems: 'center',
+        minHeight: { md: '60vh' },
+      }}
+    >
+      <Box sx={{ textAlign: { xs: 'center', md: 'left' }, pt: 2 }}>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, fontSize: { xs: 28, sm: 34, md: 42 } }}>
           相性の良い人に、<br />最短で出会う。
         </Typography>
         <Typography color="text.secondary" sx={{ mb: 3 }}>
@@ -26,7 +35,7 @@ export default function HomePage() {
 
         {/* ログイン中かどうかで、次にやることを案内する */}
         {user ? (
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'center' }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: { xs: 'center', md: 'flex-start' } }}>
             <Button component={RouterLink} to="/matches" variant="contained" size="large">
               おすすめを見る
             </Button>
@@ -35,7 +44,7 @@ export default function HomePage() {
             </Button>
           </Stack>
         ) : (
-          <Stack spacing={1} sx={{ alignItems: 'center' }}>
+          <Stack spacing={1} sx={{ alignItems: { xs: 'center', md: 'flex-start' } }}>
             <Button component={RouterLink} to="/signup" variant="contained" size="large">
               無料で相性診断をはじめる
             </Button>
@@ -59,6 +68,6 @@ export default function HomePage() {
           </Card>
         ))}
       </Stack>
-    </Stack>
+    </Box>
   )
 }

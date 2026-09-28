@@ -1,12 +1,13 @@
 // マッチング全体の流れ：データ取得 → 必須条件で絞り込み → スコア計算 → 上位を保存
 import { supabaseAdmin } from '../lib/supabaseAdmin.js'
+import { getPublicProfiles, getLikeSets } from '../lib/publicProfiles.js'
 import { filterCandidates, countExclusions } from './filter.js'
 import { scoreMatch } from './score.js'
 
 const MAX_RESULTS = 5
 
 // 全ユーザーの profiles と preferences を取得し、{ id, profile, preferences } の形にまとめる
-async function loadAllUsers() {
+export async function loadAllUsers() {
   const [profilesRes, preferencesRes] = await Promise.all([
     supabaseAdmin.from('profiles').select('*'),
     supabaseAdmin.from('preferences').select('*'),
@@ -23,7 +24,7 @@ async function loadAllUsers() {
 }
 
 // 診断を最後まで終えているか（性格・会話・生活価値観が入っていればOK）
-const hasCompletedDiagnosis = (user) =>
+export const hasCompletedDiagnosis = (user) =>
   ['personality', 'communication', 'lifestyle'].every((key) => Object.keys(user.profile[key] ?? {}).length > 0)
 
 // 保存済みの結果を取り出す（画面を開いたとき用。計算し直さないので速く、AI の説明文も残る）
@@ -36,41 +37,25 @@ export async function getSavedMatches(userId) {
   if (error) throw error
   if (results.length === 0) return { matches: [] }
 
-  // 相手のプロフィールのうち、画面に出してよい項目だけを取得する
-  const { data: partners, error: partnerError } = await supabaseAdmin
-    .from('profiles')
-    .select('id, nickname, age, occupation, prefecture, annual_income, avatar_path')
-    .in('id', results.map((r) => r.partner_id))
-  if (partnerError) throw partnerError
-  const partnerById = Object.fromEntries(partners.map((p) => [p.id, p]))
-
-  // 写真は非公開の場所にあるので、1時間だけ有効な閲覧用 URL をまとめて発行する
-  const avatarPaths = partners.map((p) => p.avatar_path).filter(Boolean)
-  const avatarUrlByPath = {}
-  if (avatarPaths.length > 0) {
-    const { data: signed } = await supabaseAdmin.storage.from('avatars').createSignedUrls(avatarPaths, 60 * 60)
-    for (const s of signed ?? []) avatarUrlByPath[s.path] = s.signedUrl
-  }
+  // 相手のプロフィール（画面に出してよい項目だけ）と、いいねの状態を取得する
+  const [profileById, { liked, likedMe }] = await Promise.all([
+    getPublicProfiles(results.map((r) => r.partner_id)),
+    getLikeSets(userId),
+  ])
 
   return {
     calculatedAt: results[0].created_at,
-    matches: results.map((r) => {
-      const p = partnerById[r.partner_id] ?? {}
-      return {
-        rank: r.rank,
-        partnerId: r.partner_id,
-        nickname: p.nickname,
-        avatarUrl: avatarUrlByPath[p.avatar_path] ?? null,
-        age: p.age,
-        occupation: p.occupation,
-        prefecture: p.prefecture,
-        annualIncome: p.annual_income,
-        totalScore: r.total_score,
-        categoryScores: r.category_scores,
-        details: r.details,
-        explanation: r.explanation,
-      }
-    }),
+    matches: results.map((r) => ({
+      ...profileById[r.partner_id],
+      partnerId: r.partner_id,
+      rank: r.rank,
+      totalScore: r.total_score,
+      categoryScores: r.category_scores,
+      details: r.details,
+      explanation: r.explanation,
+      liked: liked.has(r.partner_id), // 自分がいいねしたか
+      likedMe: likedMe.has(r.partner_id), // 相手からいいねされているか
+    })),
   }
 }
 

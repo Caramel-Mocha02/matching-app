@@ -26,8 +26,8 @@ export default function LoginPage() {
   }
 
   return (
-    <Card variant="outlined">
-      <CardContent>
+    <Card variant="outlined" sx={{ maxWidth: 480, mx: 'auto' }}>
+      <CardContent sx={{ p: { xs: 2, sm: 4 } }}>
         <Stack component="form" spacing={2} onSubmit={handleSubmit}>
           <Typography variant="h5" sx={{ fontWeight: 700 }}>ログイン</Typography>
           {error && <Alert severity="error">{error}</Alert>}

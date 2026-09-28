@@ -4,6 +4,7 @@ import cors from 'cors'
 import { supabaseAdmin } from './lib/supabaseAdmin.js'
 import { findMatches, getSavedMatches } from './matching/index.js'
 import { getExplanation } from './matching/explain.js'
+import { getLikesOverview, getConversations } from './social.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -56,6 +57,28 @@ app.post('/api/matches/:partnerId/explanation', requireUser, async (req, res) =>
   } catch (err) {
     console.error(err)
     res.status(err.status ?? 500).json({ error: err.status ? err.message : '説明文の作成に失敗しました。' })
+  }
+})
+
+// いいねの一覧（もらった・送った・マッチング成立）を返す
+// ※ いいねを送る操作はブラウザから Supabase に直接行う（RLS で送れる相手を制限している）
+app.get('/api/likes', requireUser, async (req, res) => {
+  try {
+    res.json(await getLikesOverview(req.user.id))
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'いいねの一覧を取得できませんでした。' })
+  }
+})
+
+// メッセージの相手一覧を返す
+// ※ メッセージの送信・受信はブラウザから Supabase に直接行う（RLS でマッチングした相手に限定している）
+app.get('/api/conversations', requireUser, async (req, res) => {
+  try {
+    res.json(await getConversations(req.user.id))
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'メッセージの一覧を取得できませんでした。' })
   }
 })
 

@@ -5,8 +5,9 @@ import {
   Typography,
 } from '@mui/material'
 import { apiFetch } from '../lib/api.js'
-import { BASIC_QUESTIONS } from '../data/profileQuestions.js'
+import { labelOf, profileLine } from '../lib/labels.js'
 import { MUST_CONDITION_QUESTIONS } from '../data/mustConditionQuestions.js'
+import LikeButton from '../components/LikeButton.jsx'
 
 const CATEGORIES = [
   { key: 'personality', label: '性格' },
@@ -16,9 +17,6 @@ const CATEGORIES = [
   { key: 'cleanliness', label: '清潔感' },
 ]
 
-// 保存されている値（'company_employee' や 400）を、画面用の文字（'会社員' や '400〜500万円'）に変える
-const labelOf = (key, value) =>
-  BASIC_QUESTIONS.find((q) => q.key === key)?.options?.find((o) => o.value === value)?.label ?? value
 const conditionLabel = (key) => MUST_CONDITION_QUESTIONS.find((q) => q.key === key)?.label ?? key
 
 // AI による「おすすめの理由」。保存済みならそれを表示し、無ければサーバーに作成を頼む
@@ -70,9 +68,7 @@ function MatchCard({ match }) {
           <Box sx={{ flexGrow: 1 }}>
             <Chip label={`おすすめ ${match.rank}位`} size="small" color={match.rank === 1 ? 'primary' : 'default'} sx={{ mb: 0.5 }} />
             <Typography variant="h6" sx={{ fontWeight: 700 }}>{match.nickname}</Typography>
-            <Typography variant="body2" color="text.secondary">
-              {match.age}歳・{labelOf('occupation', match.occupation)}・{match.prefecture}
-            </Typography>
+            <Typography variant="body2" color="text.secondary">{profileLine(match)}</Typography>
             <Typography variant="body2" color="text.secondary">
               年収 {labelOf('annual_income', match.annualIncome)}
             </Typography>
@@ -124,6 +120,10 @@ function MatchCard({ match }) {
         )}
 
         <Explanation partnerId={match.partnerId} initial={match.explanation} />
+
+        <Box sx={{ mt: 2 }}>
+          <LikeButton partnerId={match.partnerId} liked={match.liked} likedMe={match.likedMe} fullWidth />
+        </Box>
       </CardContent>
     </Card>
   )
@@ -133,7 +133,7 @@ function MatchCard({ match }) {
 function NoMatches({ exclusions }) {
   const rows = Object.entries(exclusions?.byCondition ?? {}).sort((a, b) => b[1] - a[1])
   return (
-    <Card variant="outlined">
+    <Card variant="outlined" sx={{ maxWidth: 720 }}>
       <CardContent>
         <Typography gutterBottom sx={{ fontWeight: 700 }}>条件に合うお相手が見つかりませんでした</Typography>
         {exclusions && (
@@ -210,7 +210,10 @@ export default function MatchesPage() {
       )}
 
       {result && result.matches.length === 0 && <NoMatches exclusions={result.exclusions} />}
-      {result?.matches.map((m) => <MatchCard key={m.partnerId} match={m} />)}
+      {/* 横長の画面では2列、スマホでは1列に並べる */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, alignItems: 'start' }}>
+        {result?.matches.map((m) => <MatchCard key={m.partnerId} match={m} />)}
+      </Box>
 
       {result && (
         <Button
