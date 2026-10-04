@@ -3,10 +3,12 @@ import { Box, Stack, Typography } from '@mui/material'
 import ThumbUpAltOutlinedIcon from '@mui/icons-material/ThumbUpAltOutlined'
 import ReportProblemOutlinedIcon from '@mui/icons-material/ReportProblemOutlined'
 
-// 見出しの言葉から、そのまとまりの色を決める
+import { POINT_COLORS } from '../lib/scoreTone.js'
+
+// 見出しの言葉から、そのまとまりの色を決める（色は lib/scoreTone.js でまとめて管理）
 const SECTION_STYLES = {
-  good: { color: '#2e7d32', bg: '#edf7ee', icon: <ThumbUpAltOutlinedIcon sx={{ fontSize: 18 }} /> },
-  caution: { color: '#e65100', bg: '#fff4e5', icon: <ReportProblemOutlinedIcon sx={{ fontSize: 18 }} /> },
+  good: { ...POINT_COLORS.good, icon: <ThumbUpAltOutlinedIcon sx={{ fontSize: 18 }} /> },
+  caution: { ...POINT_COLORS.caution, icon: <ReportProblemOutlinedIcon sx={{ fontSize: 18 }} /> },
   other: { color: '#3a3336', bg: 'transparent', icon: null },
 }
 const toneOf = (title) => (title.includes('良い') ? 'good' : title.includes('注意') ? 'caution' : 'other')

@@ -6,7 +6,7 @@ import {
 import ChatIcon from '@mui/icons-material/Chat'
 import { apiFetch } from '../lib/api.js'
 import { labelOf, profileLine } from '../lib/labels.js'
-import { scoreTone } from '../lib/scoreTone.js'
+import { POINT_COLORS, scoreTone } from '../lib/scoreTone.js'
 import { MUST_CONDITION_QUESTIONS } from '../data/mustConditionQuestions.js'
 import LikeButton from '../components/LikeButton.jsx'
 import PhotoGallery from '../components/PhotoGallery.jsx'
@@ -49,6 +49,12 @@ function Explanation({ partnerId, initial }) {
       )}
     </Box>
   )
+}
+
+// 「相性が良いポイント」「注意したいポイント」のチップ（色は lib/scoreTone.js の POINT_COLORS）
+function PointChip({ label, tone }) {
+  const { color, bg, border } = POINT_COLORS[tone]
+  return <Chip label={label} size="small" variant="outlined" sx={{ color, bgcolor: bg, borderColor: border }} />
 }
 
 // 1人分のカード。PC では左（写真・基本情報・点数）と右（おすすめの理由）の横長、スマホでは縦に並べる
@@ -109,7 +115,7 @@ function MatchCard({ match }) {
             <Box>
               <Typography variant="body2" gutterBottom sx={{ fontWeight: 700 }}>相性が良いポイント</Typography>
               <Stack direction="row" useFlexGap spacing={1} sx={{ flexWrap: 'wrap' }}>
-                {details.good.map((g) => <Chip key={g.topic} label={g.topic} size="small" color="success" variant="outlined" />)}
+                {details.good.map((g) => <PointChip key={g.topic} label={g.topic} tone="good" />)}
               </Stack>
             </Box>
           )}
@@ -117,7 +123,7 @@ function MatchCard({ match }) {
             <Box>
               <Typography variant="body2" gutterBottom sx={{ fontWeight: 700 }}>注意したいポイント</Typography>
               <Stack direction="row" useFlexGap spacing={1} sx={{ flexWrap: 'wrap' }}>
-                {cautions.map((c) => <Chip key={c} label={c} size="small" color="warning" variant="outlined" />)}
+                {cautions.map((c) => <PointChip key={c} label={c} tone="caution" />)}
               </Stack>
             </Box>
           )}
