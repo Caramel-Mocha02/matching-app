@@ -33,6 +33,19 @@ async function loadSocialData(userId) {
   return { likes, messages, likedIds, likedMeIds, talkedIds, canMessage }
 }
 
+// メニューのバッジ用の件数 → { receivedLikes: まだ返していないいいねの数, unreadMessages: 未読メッセージの数 }
+export async function getNotificationCounts(userId) {
+  const [likesRes, unreadRes] = await Promise.all([
+    supabaseAdmin.from('likes').select('from_user, to_user').or(`from_user.eq.${userId},to_user.eq.${userId}`),
+    supabaseAdmin.from('messages').select('id', { count: 'exact', head: true }).eq('receiver_id', userId).is('read_at', null),
+  ])
+  if (likesRes.error) throw likesRes.error
+  if (unreadRes.error) throw unreadRes.error
+  const liked = new Set(likesRes.data.filter((l) => l.from_user === userId).map((l) => l.to_user))
+  const receivedLikes = likesRes.data.filter((l) => l.to_user === userId && !liked.has(l.from_user)).length
+  return { receivedLikes, unreadMessages: unreadRes.count ?? 0 }
+}
+
 // いいねの一覧 → { received: もらったいいね, sent: 送ったいいね, matched: お互いにいいね }
 export async function getLikesOverview(userId) {
   const { likes, likedIds, likedMeIds, canMessage } = await loadSocialData(userId)

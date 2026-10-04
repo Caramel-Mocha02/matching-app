@@ -4,7 +4,7 @@ import cors from 'cors'
 import { supabaseAdmin } from './lib/supabaseAdmin.js'
 import { findMatches, getSavedMatches } from './matching/index.js'
 import { getExplanation } from './matching/explain.js'
-import { getLikesOverview, getConversations } from './social.js'
+import { getLikesOverview, getConversations, getNotificationCounts } from './social.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -57,6 +57,16 @@ app.post('/api/matches/:partnerId/explanation', requireUser, async (req, res) =>
   } catch (err) {
     console.error(err)
     res.status(err.status ?? 500).json({ error: err.status ? err.message : '説明文の作成に失敗しました。' })
+  }
+})
+
+// メニューのバッジ用の件数（もらったいいね・未読メッセージ）を返す
+app.get('/api/notifications', requireUser, async (req, res) => {
+  try {
+    res.json(await getNotificationCounts(req.user.id))
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: '通知の件数を取得できませんでした。' })
   }
 })
 

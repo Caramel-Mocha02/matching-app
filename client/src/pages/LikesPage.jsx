@@ -1,11 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 import {
-  Alert, Avatar, Badge, Box, Button, Card, CardContent, CircularProgress, Stack, Tab, Tabs, Typography,
+  Alert, Badge, Box, Button, Card, CardContent, CircularProgress, Stack, Tab, Tabs, Typography,
 } from '@mui/material'
 import { apiFetch } from '../lib/api.js'
 import { profileLine } from '../lib/labels.js'
+import { scoreTone } from '../lib/scoreTone.js'
 import LikeButton from '../components/LikeButton.jsx'
+import PhotoGallery from '../components/PhotoGallery.jsx'
+
+// 「10月4日 14:05」のような日時
+const formatDate = (iso) =>
+  new Date(iso).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 
 const TABS = [
   { key: 'received', label: 'もらったいいね', empty: 'まだいいねは届いていません。' },
@@ -18,18 +24,21 @@ function PartnerCard({ partner, tab, onLiked }) {
   return (
     <Card>
       <CardContent>
-        <Stack direction="row" spacing={2} sx={{ alignItems: 'center', mb: 2 }}>
-          <Avatar src={partner.avatarUrl ?? undefined} sx={{ width: 56, height: 56, bgcolor: 'primary.light', fontSize: 24 }}>
-            {partner.nickname?.[0]}
-          </Avatar>
+        <Stack direction="row" spacing={2} sx={{ alignItems: 'flex-start', mb: 2 }}>
+          <PhotoGallery photos={partner.photoUrls} name={partner.nickname} size={72} />
           <Box sx={{ flexGrow: 1, minWidth: 0 }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>{partner.nickname}</Typography>
             <Typography variant="body2" color="text.secondary">{profileLine(partner)}</Typography>
+            <Typography variant="caption" color="text.secondary">
+              {formatDate(partner.likedAt)}に{tab === 'received' ? 'いいねが届きました' : tab === 'sent' ? 'いいねしました' : 'お互いにいいね'}
+            </Typography>
           </Box>
           {partner.totalScore != null && (
             <Box sx={{ textAlign: 'center' }}>
               <Typography variant="caption" color="text.secondary">相性</Typography>
-              <Typography variant="h5" color="primary" sx={{ fontWeight: 700, lineHeight: 1 }}>{partner.totalScore}</Typography>
+              <Typography variant="h5" sx={{ fontWeight: 700, lineHeight: 1, color: scoreTone(partner.totalScore).color }}>
+                {partner.totalScore}
+              </Typography>
             </Box>
           )}
         </Stack>

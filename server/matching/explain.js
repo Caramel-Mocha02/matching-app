@@ -23,13 +23,18 @@ const INSTRUCTIONS = `あなたは婚活アプリの相性アドバイザーで�
 - 外見・容姿・年収には触れない。
 - です・ます調で、全体で300字程度にする。
 
-# 出力の形式（この形式だけを出力する）
-【相性が良いポイント】
-・（1つ目）
-・（2つ目）
-【注意したいポイント】
-・（1つ目）
-（最後に、前向きな一言を1文）`
+# 出力の形式（マークダウン。この形式だけを出力し、ほかの記号や見出しは使わない）
+- 見出しは「### 相性が良いポイント」と「### 注意したいポイント」の2つだけ。
+- 各ポイントは「- **短いキーワード**：説明」の形の箇条書きにする。キーワードは10文字以内。
+- 最後に、前向きな一言を「> 」で始まる1文で書く。
+
+例：
+### 相性が良いポイント
+- **会話のテンポ**：お二人とも〜なので、〜しやすいでしょう。
+- **一人時間の感覚**：〜
+### 注意したいポイント
+- **お金の使い方**：〜。早めに〜を話し合ってみると安心です。
+> 〜なお相手かもしれません。`
 
 // AI に渡す材料を文章にまとめる
 function buildInput(row, nickname) {
@@ -48,19 +53,19 @@ function buildInput(row, nickname) {
   return lines.join('\n')
 }
 
-// API キーが無いときの定型文
+// API キーが無いときの定型文（AI と同じマークダウン形式）
 function templateExplanation(row, nickname) {
-  const good = row.details.good.slice(0, 3).map((g) => `・${g.topic}：あなたは「${g.mine}」、${nickname}さんは「${g.theirs}」です。`)
+  const good = row.details.good.slice(0, 3).map((g) => `- **${g.topic}**：あなたは「${g.mine}」、${nickname}さんは「${g.theirs}」です。`)
   const caution = [
-    ...row.details.caution.slice(0, 2).map((c) => `・${c.topic}：あなたは「${c.mine}」、${nickname}さんは「${c.theirs}」です。`),
-    ...row.details.penalties.slice(0, 1).map((p) => `・${p}`),
+    ...row.details.caution.slice(0, 2).map((c) => `- **${c.topic}**：あなたは「${c.mine}」、${nickname}さんは「${c.theirs}」です。`),
+    ...row.details.penalties.slice(0, 1).map((p) => `- **要確認**：${p}`),
   ]
   return [
-    '【相性が良いポイント】',
-    ...(good.length > 0 ? good : ['・全体的にバランスの取れた組み合わせです。']),
-    '【注意したいポイント】',
-    ...(caution.length > 0 ? caution : ['・大きな違いは見つかりませんでしたが、実際に話して確かめてみましょう。']),
-    '気になる点は、会ったときにお互いの考えを聞いてみてください。',
+    '### 相性が良いポイント',
+    ...(good.length > 0 ? good : ['- **バランス**：全体的にバランスの取れた組み合わせです。']),
+    '### 注意したいポイント',
+    ...(caution.length > 0 ? caution : ['- **実際の会話**：大きな違いは見つかりませんでしたが、話して確かめてみましょう。']),
+    '> 気になる点は、会ったときにお互いの考えを聞いてみてください。',
   ].join('\n')
 }
 

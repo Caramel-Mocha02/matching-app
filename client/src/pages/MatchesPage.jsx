@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link as RouterLink, useLocation } from 'react-router-dom'
 import {
-  Alert, Avatar, Box, Button, Card, CardContent, Chip, CircularProgress, Divider, LinearProgress, Skeleton, Stack,
-  Typography,
+  Alert, Box, Button, Card, CardContent, Chip, CircularProgress, LinearProgress, Skeleton, Stack, Typography,
 } from '@mui/material'
+import ChatIcon from '@mui/icons-material/Chat'
 import { apiFetch } from '../lib/api.js'
 import { labelOf, profileLine } from '../lib/labels.js'
+import { scoreTone } from '../lib/scoreTone.js'
 import { MUST_CONDITION_QUESTIONS } from '../data/mustConditionQuestions.js'
 import LikeButton from '../components/LikeButton.jsx'
-import ChatIcon from '@mui/icons-material/Chat'
+import PhotoGallery from '../components/PhotoGallery.jsx'
+import ExplanationMarkdown from '../components/ExplanationMarkdown.jsx'
 
 const CATEGORIES = [
   { key: 'personality', label: '性格' },
@@ -33,11 +35,10 @@ function Explanation({ partnerId, initial }) {
   }, [partnerId, initial])
 
   return (
-    <Box sx={{ bgcolor: 'background.default', borderRadius: 2, p: 2 }}>
-      <Typography variant="body2" gutterBottom sx={{ fontWeight: 700 }}>おすすめの理由</Typography>
+    <Box>
+      <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 700 }}>おすすめの理由</Typography>
       {text ? (
-        // 改行をそのまま表示する（pre-line）
-        <Typography variant="body2" sx={{ whiteSpace: 'pre-line', lineHeight: 1.8 }}>{text}</Typography>
+        <ExplanationMarkdown markdown={text} />
       ) : failed ? (
         <Typography variant="body2" color="text.secondary">説明文を読み込めませんでした。</Typography>
       ) : (
@@ -50,84 +51,97 @@ function Explanation({ partnerId, initial }) {
   )
 }
 
-// 点数に応じた色（80点以上は強調、60点未満は控えめに）
-const scoreColor = (score) => (score >= 80 ? 'primary.main' : score >= 60 ? 'text.primary' : 'text.secondary')
-
-// 1人分のカード
+// 1人分のカード。PC では左（写真・基本情報・点数）と右（おすすめの理由）の横長、スマホでは縦に並べる
 function MatchCard({ match }) {
   const { details } = match
   const cautions = [...details.caution.map((c) => c.topic), ...details.penalties]
+  const tone = scoreTone(match.totalScore)
 
   return (
     <Card>
-      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-        {/* 上段：アイコン・名前・総合スコア */}
-        <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
-          <Avatar src={match.avatarUrl ?? undefined} sx={{ width: 56, height: 56, bgcolor: 'primary.light', fontSize: 24 }}>
-            {match.nickname?.[0]}
-          </Avatar>
-          <Box sx={{ flexGrow: 1 }}>
-            <Chip label={`おすすめ ${match.rank}位`} size="small" color={match.rank === 1 ? 'primary' : 'default'} sx={{ mb: 0.5 }} />
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>{match.nickname}</Typography>
-            <Typography variant="body2" color="text.secondary">{profileLine(match)}</Typography>
-            <Typography variant="body2" color="text.secondary">
-              年収 {labelOf('annual_income', match.annualIncome)}
-            </Typography>
-          </Box>
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="caption" color="text.secondary">相性</Typography>
-            <Typography variant="h4" color={scoreColor(match.totalScore)} sx={{ fontWeight: 700, lineHeight: 1 }}>
-              {match.totalScore}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">点</Typography>
+      <CardContent
+        sx={{
+          p: { xs: 2, sm: 3 },
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: '380px 1fr' },
+          gap: { xs: 2, md: 4 },
+        }}
+      >
+        {/* 左：写真・名前・総合スコア・分野別スコア・ボタン */}
+        <Stack spacing={2}>
+          <Stack direction="row" spacing={2} sx={{ alignItems: 'flex-start' }}>
+            <PhotoGallery photos={match.photoUrls} name={match.nickname} size={96} />
+            <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+              <Chip label={`おすすめ ${match.rank}位`} size="small" color={match.rank === 1 ? 'primary' : 'default'} sx={{ mb: 0.5 }} />
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>{match.nickname}</Typography>
+              <Typography variant="body2" color="text.secondary">{profileLine(match)}</Typography>
+              <Typography variant="body2" color="text.secondary">年収 {labelOf('annual_income', match.annualIncome)}</Typography>
+            </Box>
+            {/* 総合スコア：点数に応じて色が変わる */}
+            <Box sx={{ textAlign: 'center', flexShrink: 0 }}>
+              <Typography variant="caption" color="text.secondary">相性</Typography>
+              <Typography variant="h3" sx={{ fontWeight: 700, lineHeight: 1, color: tone.color }}>{match.totalScore}</Typography>
+              <Chip label={tone.label} size="small" sx={{ mt: 0.5, bgcolor: tone.color, color: 'white', fontWeight: 700 }} />
+            </Box>
+          </Stack>
+
+          {/* 分野別スコア：バーも点数に応じた色にする */}
+          <Stack spacing={1}>
+            {CATEGORIES.map((c) => {
+              const score = match.categoryScores[c.key]
+              const { color } = scoreTone(score)
+              return (
+                <Stack key={c.key} direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                  <Typography variant="body2" sx={{ width: 64 }}>{c.label}</Typography>
+                  <LinearProgress
+                    variant="determinate"
+                    value={score}
+                    sx={{ flexGrow: 1, height: 8, borderRadius: 4, bgcolor: `${color}26`, '& .MuiLinearProgress-bar': { bgcolor: color } }}
+                  />
+                  <Typography variant="body2" sx={{ width: 28, textAlign: 'right', fontWeight: 700, color }}>{score}</Typography>
+                </Stack>
+              )
+            })}
+          </Stack>
+
+          {/* 相性が良い点・注意したい点 */}
+          {details.good.length > 0 && (
+            <Box>
+              <Typography variant="body2" gutterBottom sx={{ fontWeight: 700 }}>相性が良いポイント</Typography>
+              <Stack direction="row" useFlexGap spacing={1} sx={{ flexWrap: 'wrap' }}>
+                {details.good.map((g) => <Chip key={g.topic} label={g.topic} size="small" color="success" variant="outlined" />)}
+              </Stack>
+            </Box>
+          )}
+          {cautions.length > 0 && (
+            <Box>
+              <Typography variant="body2" gutterBottom sx={{ fontWeight: 700 }}>注意したいポイント</Typography>
+              <Stack direction="row" useFlexGap spacing={1} sx={{ flexWrap: 'wrap' }}>
+                {cautions.map((c) => <Chip key={c} label={c} size="small" color="warning" variant="outlined" />)}
+              </Stack>
+            </Box>
+          )}
+
+          {/* いいね（興味を伝える）と、メッセージ（いいねを待たずにすぐ送れる） */}
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, alignItems: 'start' }}>
+            <LikeButton partnerId={match.partnerId} liked={match.liked} likedMe={match.likedMe} fullWidth />
+            <Button component={RouterLink} to={`/messages/${match.partnerId}`} variant="contained" startIcon={<ChatIcon />}>
+              メッセージ
+            </Button>
           </Box>
         </Stack>
 
-        {/* 分野別スコア */}
-        <Stack spacing={1} sx={{ mt: 2 }}>
-          {CATEGORIES.map((c) => (
-            <Stack key={c.key} direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-              <Typography variant="body2" sx={{ width: 64 }}>{c.label}</Typography>
-              <LinearProgress
-                variant="determinate"
-                value={match.categoryScores[c.key]}
-                sx={{ flexGrow: 1, height: 8, borderRadius: 4 }}
-              />
-              <Typography variant="body2" sx={{ width: 28, textAlign: 'right' }}>
-                {match.categoryScores[c.key]}
-              </Typography>
-            </Stack>
-          ))}
-        </Stack>
-
-        <Divider sx={{ my: 2 }} />
-
-        {/* 相性が良い点・注意したい点 */}
-        {details.good.length > 0 && (
-          <Box sx={{ mb: 1.5 }}>
-            <Typography variant="body2" gutterBottom sx={{ fontWeight: 700 }}>相性が良いポイント</Typography>
-            <Stack direction="row" useFlexGap spacing={1} sx={{ flexWrap: 'wrap' }}>
-              {details.good.map((g) => <Chip key={g.topic} label={g.topic} size="small" color="success" variant="outlined" />)}
-            </Stack>
-          </Box>
-        )}
-        {cautions.length > 0 && (
-          <Box sx={{ mb: 1.5 }}>
-            <Typography variant="body2" gutterBottom sx={{ fontWeight: 700 }}>注意したいポイント</Typography>
-            <Stack direction="row" useFlexGap spacing={1} sx={{ flexWrap: 'wrap' }}>
-              {cautions.map((c) => <Chip key={c} label={c} size="small" color="warning" variant="outlined" />)}
-            </Stack>
-          </Box>
-        )}
-
-        <Explanation partnerId={match.partnerId} initial={match.explanation} />
-
-        {/* いいね（興味を伝える）と、メッセージ（いいねを待たずにすぐ送れる） */}
-        <Box sx={{ mt: 2, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, alignItems: 'start' }}>
-          <LikeButton partnerId={match.partnerId} liked={match.liked} likedMe={match.likedMe} fullWidth />
-          <Button component={RouterLink} to={`/messages/${match.partnerId}`} variant="contained" startIcon={<ChatIcon />}>
-            メッセージ
-          </Button>
+        {/* 右：おすすめの理由（スマホでは下に表示） */}
+        <Box
+          sx={{
+            // 左右（スマホでは上下）の区切り線。色を明示しないと黒い線になるため、薄い灰色を指定する
+            borderTop: { xs: '1px solid rgba(0, 0, 0, 0.08)', md: 'none' },
+            borderLeft: { xs: 'none', md: '1px solid rgba(0, 0, 0, 0.08)' },
+            pt: { xs: 2, md: 0 },
+            pl: { md: 4 },
+          }}
+        >
+          <Explanation partnerId={match.partnerId} initial={match.explanation} />
         </Box>
       </CardContent>
     </Card>
@@ -215,10 +229,10 @@ export default function MatchesPage() {
       )}
 
       {result && result.matches.length === 0 && <NoMatches exclusions={result.exclusions} />}
-      {/* 横長の画面では2列、スマホでは1列に並べる */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, alignItems: 'start' }}>
+      {/* 1人1枚。PC ではカードの中で横に並べる */}
+      <Stack spacing={2}>
         {result?.matches.map((m) => <MatchCard key={m.partnerId} match={m} />)}
-      </Box>
+      </Stack>
 
       {result && (
         <Button

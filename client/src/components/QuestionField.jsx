@@ -3,7 +3,7 @@ import {
   RadioGroup, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import AvatarField from './AvatarField.jsx'
+import PhotosField from './PhotosField.jsx'
 
 // 「外見の好み」の3択。neutral（どちらでも）は保存しない
 const LIKE_CHOICES = [
@@ -19,8 +19,8 @@ const toNumber = (text) => (text === '' ? null : Number(text))
 export default function QuestionField({ question, value, onChange }) {
   const { label, type, options, min, max, unit } = question
 
-  if (type === 'avatar') {
-    return <AvatarField label={label} value={value} onChange={onChange} />
+  if (type === 'photos') {
+    return <PhotosField label={label} value={value} onChange={onChange} />
   }
 
   if (type === 'select') {
@@ -92,24 +92,28 @@ export default function QuestionField({ question, value, onChange }) {
     return (
       <Box>
         <Typography variant="body2" color="text.secondary" gutterBottom>{label}</Typography>
+        {/* 入力欄は残りの幅いっぱいに広げ、単位は欄の後ろに表示する（狭い場所でも文字が切れないように） */}
         <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
           <TextField
             type="number"
             size="small"
-            label={`下限（${unit}）`}
+            label="下限"
             value={range.min ?? ''}
             slotProps={{ htmlInput: { min, max } }}
             onChange={(e) => onChange({ ...range, min: toNumber(e.target.value) })}
+            sx={{ flex: 1, minWidth: 0 }}
           />
           <Typography>〜</Typography>
           <TextField
             type="number"
             size="small"
-            label={`上限（${unit}）`}
+            label="上限"
             value={range.max ?? ''}
             slotProps={{ htmlInput: { min, max } }}
             onChange={(e) => onChange({ ...range, max: toNumber(e.target.value) })}
+            sx={{ flex: 1, minWidth: 0 }}
           />
+          <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>{unit}</Typography>
         </Stack>
       </Box>
     )
@@ -168,6 +172,40 @@ export default function QuestionField({ question, value, onChange }) {
       ? 'こだわりなし'
       : [likeCount && `好き${likeCount}`, dislikeCount && `苦手${dislikeCount}`].filter(Boolean).join('・')
 
+    const rows = (
+      <Stack spacing={1}>
+        {options.map((opt) => (
+          <Stack key={opt.value} direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography variant="body2">{opt.label}</Typography>
+            <ToggleButtonGroup
+              exclusive
+              size="small"
+              color="primary"
+              value={likes[opt.value] ?? 'neutral'}
+              onChange={(_e, v) => v !== null && setLike(opt.value, v)}
+            >
+              {LIKE_CHOICES.map((c) => (
+                <ToggleButton key={c.value} value={c.value} sx={{ px: 1.5 }}>{c.label}</ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+          </Stack>
+        ))}
+      </Stack>
+    )
+
+    // inline：「自分」と組にして表示するときは、折りたたまずにそのまま並べる
+    if (question.inline) {
+      return (
+        <Box>
+          <Stack direction="row" sx={{ justifyContent: 'space-between', mb: 1 }}>
+            <Typography variant="body2" color="text.secondary">{label}</Typography>
+            <Typography variant="body2" color={summary === 'こだわりなし' ? 'text.secondary' : 'primary'}>{summary}</Typography>
+          </Stack>
+          {rows}
+        </Box>
+      )
+    }
+
     return (
       <Accordion variant="outlined" disableGutters sx={{ borderRadius: 2, '&::before': { display: 'none' } }}>
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -176,26 +214,7 @@ export default function QuestionField({ question, value, onChange }) {
             {summary}
           </Typography>
         </AccordionSummary>
-        <AccordionDetails>
-        <Stack spacing={1}>
-          {options.map((opt) => (
-            <Stack key={opt.value} direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
-              <Typography variant="body2">{opt.label}</Typography>
-              <ToggleButtonGroup
-                exclusive
-                size="small"
-                color="primary"
-                value={likes[opt.value] ?? 'neutral'}
-                onChange={(_e, v) => v !== null && setLike(opt.value, v)}
-              >
-                {LIKE_CHOICES.map((c) => (
-                  <ToggleButton key={c.value} value={c.value} sx={{ px: 1.5 }}>{c.label}</ToggleButton>
-                ))}
-              </ToggleButtonGroup>
-            </Stack>
-          ))}
-        </Stack>
-        </AccordionDetails>
+        <AccordionDetails>{rows}</AccordionDetails>
       </Accordion>
     )
   }

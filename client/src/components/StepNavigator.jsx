@@ -6,10 +6,9 @@ import { countAll, countStep, isStepComplete } from '../lib/diagnosisProgress.js
 
 // ステップごとの状態の文字（「6/8」「任意」など）
 function stepStatus(data, s) {
-  if (!s.questions) return ''
-  if (s.optional) return '任意'
+  if (!s.items) return ''
   const { answered, total } = countStep(data, s)
-  return `${answered}/${total}`
+  return total === 0 ? '任意' : `${answered}/${total}`
 }
 
 // 全体の進み具合（回答した項目数で表示する）
@@ -41,7 +40,7 @@ export default function StepNavigator({ data, current, onSelect, compact }) {
 
   const items = STEPS.map((s, i) => {
     const active = i === current
-    const done = s.questions && isStepComplete(data, s) && !s.optional
+    const done = s.items && countStep(data, s).total > 0 && isStepComplete(data, s)
     return { s, i, active, done, status: stepStatus(data, s) }
   })
 

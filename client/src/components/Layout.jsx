@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react'
 import { Outlet, Link as RouterLink, useLocation, useNavigate } from 'react-router-dom'
 import {
-  AppBar, BottomNavigation, BottomNavigationAction, Box, Button, Container, IconButton, Paper, Toolbar, Typography,
+  AppBar, Badge, BottomNavigation, BottomNavigationAction, Box, Button, Container, IconButton, Paper, Toolbar,
+  Typography,
 } from '@mui/material'
 import FavoriteIcon from '@mui/icons-material/Favorite'
 import AssignmentIcon from '@mui/icons-material/Assignment'
@@ -8,14 +10,39 @@ import ThumbUpIcon from '@mui/icons-material/ThumbUp'
 import ChatIcon from '@mui/icons-material/Chat'
 import LogoutIcon from '@mui/icons-material/Logout'
 import { useAuth } from '../contexts/AuthContext.jsx'
+import { apiFetch } from '../lib/api.js'
+import { subscribeToIncoming } from '../lib/social.js'
 
-// ログイン中に表示するメニュー
+// ログイン中に表示するメニュー。countKey があるものは、件数のバッジを付ける
 const NAV_ITEMS = [
   { to: '/diagnosis', label: '診断', icon: <AssignmentIcon /> },
   { to: '/matches', label: 'おすすめ', icon: <FavoriteIcon /> },
-  { to: '/likes', label: 'いいね', icon: <ThumbUpIcon /> },
-  { to: '/messages', label: 'メッセージ', icon: <ChatIcon /> },
+  { to: '/likes', label: 'いいね', icon: <ThumbUpIcon />, countKey: 'receivedLikes' },
+  { to: '/messages', label: 'メッセージ', icon: <ChatIcon />, countKey: 'unreadMessages' },
 ]
+
+// アイコンに件数のバッジを付ける（0件なら表示しない）
+const withBadge = (item, counts) =>
+  item.countKey ? <Badge badgeContent={counts[item.countKey] ?? 0} color="error">{item.icon}</Badge> : item.icon
+
+// もらったいいね・未読メッセージの件数。ページを移動したとき、メッセージが届いたとき、1分ごとに取り直す
+function useNotificationCounts(user, pathname) {
+  const [counts, setCounts] = useState({})
+
+  useEffect(() => {
+    if (!user) return
+    const load = () => apiFetch('/api/notifications').then(setCounts).catch(() => {})
+    load()
+    const timer = setInterval(load, 60 * 1000)
+    const unsubscribe = subscribeToIncoming(user.id, load)
+    return () => {
+      clearInterval(timer)
+      unsubscribe()
+    }
+  }, [user, pathname])
+
+  return user ? counts : {}
+}
 
 // 全画面共通のレイアウト。<Outlet /> の位置に各ページが表示される。
 // 横長の画面ではヘッダーにメニューを並べ、スマホでは画面下部にメニューを固定表示する。
@@ -25,6 +52,7 @@ export default function Layout() {
   const { pathname } = useLocation()
   // 今いるページに対応するメニュー（/messages/xxx でも「メッセージ」を選択中にする）
   const activeNav = NAV_ITEMS.find((item) => pathname.startsWith(item.to))?.to ?? false
+  const counts = useNotificationCounts(user, pathname)
 
   const handleLogout = async () => {
     await signOut()
@@ -51,7 +79,7 @@ export default function Layout() {
                     key={item.to}
                     component={RouterLink}
                     to={item.to}
-                    startIcon={item.icon}
+                    startIcon={withBadge(item, counts)}
                     variant={activeNav === item.to ? 'contained' : 'text'}
                   >
                     {item.label}
@@ -92,7 +120,7 @@ export default function Layout() {
                 to={item.to}
                 value={item.to}
                 label={item.label}
-                icon={item.icon}
+                icon={withBadge(item, counts)}
               />
             ))}
           </BottomNavigation>

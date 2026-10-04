@@ -10,7 +10,7 @@ import CloudDoneIcon from '@mui/icons-material/CloudDoneOutlined'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { fetchDiagnosis, saveToTable } from '../lib/diagnosis.js'
 import {
-  buildPayload, countAll, getStepValues, getVisibleQuestions, isEmpty, isStepComplete,
+  buildPayloads, countAll, flatQuestions, getValue, getVisibleItems, isEmpty, isStepComplete, isVisible, setValue,
 } from '../lib/diagnosisProgress.js'
 import QuestionField from '../components/QuestionField.jsx'
 import StepNavigator from '../components/StepNavigator.jsx'
@@ -23,7 +23,7 @@ function ReviewStep({ data, onEdit }) {
   return (
     <List disablePadding>
       {STEPS.map((s, i) => {
-        if (!s.questions) return null
+        if (!s.items) return null
         const complete = isStepComplete(data, s)
         return (
           <ListItem
@@ -36,12 +36,32 @@ function ReviewStep({ data, onEdit }) {
             </ListItemIcon>
             <ListItemText
               primary={s.title}
-              secondary={complete ? (s.optional ? '設定済み（任意）' : '入力済み') : '未入力の項目があります'}
+              secondary={complete ? '入力済み' : '未入力の項目があります'}
             />
           </ListItem>
         )
       })}
     </List>
+  )
+}
+
+// 「自分」と「お相手に求めること」を1つにまとめた項目。PC では左右、スマホでは上下に並べる
+function PairedField({ item, data, onChange }) {
+  return (
+    <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 2, p: { xs: 1.5, sm: 2 } }}>
+      <Typography sx={{ fontWeight: 700, mb: 1.5 }}>{item.label}</Typography>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, alignItems: 'start' }}>
+        {item.self && (
+          <QuestionField question={item.self} value={getValue(data, item.self)} onChange={(v) => onChange(item.self, v)} />
+        )}
+        {item.partner && (
+          // 相手についての入力は、薄いピンクの背景で区別する
+          <Box sx={{ bgcolor: '#fdf4f6', borderRadius: 2, p: 1.5 }}>
+            <QuestionField question={item.partner} value={getValue(data, item.partner)} onChange={(v) => onChange(item.partner, v)} />
+          </Box>
+        )}
+      </Box>
+    </Box>
   )
 }
 
@@ -96,8 +116,11 @@ export default function DiagnosisPage() {
       dirtyRef.current.clear()
       setSaveStatus('saving')
       try {
+        // 1つのステップに保存先の違う質問が混ざっているので、テーブルごとに保存する
         for (const i of indexes) {
-          await saveToTable(STEPS[i].table, user.id, buildPayload(dataRef.current, STEPS[i]))
+          for (const [table, payload] of Object.entries(buildPayloads(dataRef.current, STEPS[i]))) {
+            await saveToTable(table, user.id, payload)
+          }
         }
         setSaveStatus('saved')
         setSavedAt(new Date())
@@ -116,7 +139,7 @@ export default function DiagnosisPage() {
     fetchDiagnosis(user.id)
       .then((loaded) => {
         setData(loaded)
-        const firstIncomplete = STEPS.findIndex((s) => s.questions && !isStepComplete(loaded, s))
+        const firstIncomplete = STEPS.findIndex((s) => s.items && !isStepComplete(loaded, s))
         setStep(firstIncomplete === -1 ? STEPS.length - 1 : firstIncomplete) // 全部済んでいれば確認ステップへ
       })
       .catch(() => setError('データの読み込みに失敗しました。'))
@@ -142,27 +165,21 @@ export default function DiagnosisPage() {
   }, [step])
 
   const current = STEPS[step]
-  const questions = getVisibleQuestions(data, current)
-  const values = getStepValues(data, current)
+  const items = getVisibleItems(data, current) // 画面に表示する項目（質問、または自分＋相手の組）
   const isLast = step === STEPS.length - 1
-  const allComplete = STEPS.every((s) => !s.questions || isStepComplete(data, s))
+  const allComplete = STEPS.every((s) => !s.items || isStepComplete(data, s))
   // 最後の確認ステップでは、すべてのステップが入力済みかを見る
   const canProceed = isLast ? allComplete : isStepComplete(data, current)
   // 範囲入力で「下限 > 上限」になっていないか
-  const hasInvalidRange = questions.some(
-    (q) => q.type === 'range' && values[q.key]?.min != null && values[q.key]?.max != null && values[q.key].min > values[q.key].max,
-  )
+  const hasInvalidRange = flatQuestions(current).some((q) => {
+    const v = getValue(data, q)
+    return q.type === 'range' && isVisible(data, q) && v?.min != null && v?.max != null && v.min > v.max
+  })
   const busy = saveStatus === 'saving'
 
   // 1項目の回答を更新し、少し待ってから自動保存する
-  const handleChange = (key, value) => {
-    setData((prev) => {
-      const row = prev[current.table] ?? {}
-      const newRow = current.group
-        ? { ...row, [current.group]: { ...row[current.group], [key]: value } }
-        : { ...row, [key]: value }
-      return { ...prev, [current.table]: newRow }
-    })
+  const handleChange = (question, value) => {
+    setData((prev) => setValue(prev, question, value))
     dirtyRef.current.add(step)
     setSaveStatus('pending')
     clearTimeout(timerRef.current)
@@ -229,21 +246,28 @@ export default function DiagnosisPage() {
               <Typography variant="body2" color="text.secondary">{current.description}</Typography>
             )}
 
-            {current.questions ? (
+            {current.items ? (
               <Stack spacing={3} sx={{ mt: 3 }}>
-                {questions.map((q, i) => {
-                  const required = !current.optional && !q.optional
-                  const answered = required && !isEmpty(values[q.key])
+                {items.map((item, i) => {
+                  // 組の項目（自分＋相手）かどうか。片方だけ表示する場合もあるので 'self' があるかで判定する
+                  const isPair = 'self' in item
+                  // この項目の必須の質問（組の場合は自分・相手の両方）がすべて答えてあるか
+                  const required = (isPair ? [item.self, item.partner] : [item]).filter((q) => q && !q.optional)
+                  const answered = required.length > 0 && required.every((q) => !isEmpty(getValue(data, q)))
                   return (
-                    <Box key={q.key}>
-                      {/* 「質問 3 / 8」：このステップの中で今どこにいるか */}
+                    <Box key={isPair ? `pair-${item.label}` : item.key}>
+                      {/* 「項目 3 / 8」：このステップの中で今どこにいるか */}
                       <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center', mb: 0.5 }}>
                         {answered && <CheckCircleIcon sx={{ fontSize: 16, color: 'primary.main' }} />}
                         <Typography variant="caption" color="text.secondary">
-                          質問 {i + 1} / {questions.length}{!required && '（任意）'}
+                          項目 {i + 1} / {items.length}{required.length === 0 && '（任意）'}
                         </Typography>
                       </Stack>
-                      <QuestionField question={q} value={values[q.key]} onChange={(value) => handleChange(q.key, value)} />
+                      {isPair ? (
+                        <PairedField item={item} data={data} onChange={handleChange} />
+                      ) : (
+                        <QuestionField question={item} value={getValue(data, item)} onChange={(value) => handleChange(item, value)} />
+                      )}
                     </Box>
                   )
                 })}
