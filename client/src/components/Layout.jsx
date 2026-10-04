@@ -21,9 +21,10 @@ const NAV_ITEMS = [
   { to: '/messages', label: 'メッセージ', icon: <ChatIcon />, countKey: 'unreadMessages' },
 ]
 
-// アイコンに件数のバッジを付ける（0件なら表示しない）
+// アイコンに件数のバッジを付ける（0件なら表示しない）。濃いローズに白いふちを付けて、ピンクのボタンの上でも目立たせる
+const BADGE_STYLE = { '& .MuiBadge-badge': { bgcolor: '#c2255c', color: 'white', border: '1.5px solid white' } }
 const withBadge = (item, counts) =>
-  item.countKey ? <Badge badgeContent={counts[item.countKey] ?? 0} color="error">{item.icon}</Badge> : item.icon
+  item.countKey ? <Badge badgeContent={counts[item.countKey] ?? 0} sx={BADGE_STYLE}>{item.icon}</Badge> : item.icon
 
 // もらったいいね・未読メッセージの件数。ページを移動したとき、メッセージが届いたとき、1分ごとに取り直す
 function useNotificationCounts(user, pathname) {
