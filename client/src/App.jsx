@@ -9,6 +9,8 @@ import MatchesPage from './pages/MatchesPage.jsx'
 import LikesPage from './pages/LikesPage.jsx'
 import MessagesPage from './pages/MessagesPage.jsx'
 import AccountPage from './pages/AccountPage.jsx'
+import AgeVerificationPage from './pages/AgeVerificationPage.jsx'
+import AdminAgeVerificationPage from './pages/AdminAgeVerificationPage.jsx'
 
 // URLと画面の対応表
 export default function App() {
@@ -27,6 +29,9 @@ export default function App() {
           <Route path="/messages" element={<MessagesPage />} />
           <Route path="/messages/:partnerId" element={<MessagesPage />} />
           <Route path="/account" element={<AccountPage />} />
+          <Route path="/age-verification" element={<AgeVerificationPage />} />
+          {/* 運営者用（運営者以外が開いても、サーバーが一覧を返さない） */}
+          <Route path="/admin/age-verifications" element={<AdminAgeVerificationPage />} />
         </Route>
       </Route>
     </Routes>

@@ -5,9 +5,10 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    // フロントから /api へのリクエストを Express サーバー（3001番）へ転送する
+    // フロントから /api へのリクエストを Express サーバー（通常は3001番）へ転送する
+    // API_PROXY_TARGET を指定すると転送先を変えられる（Playwright のテストでは別の番号のサーバーを使う）
     proxy: {
-      '/api': 'http://localhost:3001',
+      '/api': process.env.API_PROXY_TARGET ?? 'http://localhost:3001',
     },
   },
 })

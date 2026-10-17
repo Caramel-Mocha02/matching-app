@@ -1,13 +1,14 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import {
-  Alert, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Stack, TextField,
+  Alert, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Stack, TextField,
   Typography,
 } from '@mui/material'
 import LogoutIcon from '@mui/icons-material/Logout'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { apiFetch } from '../lib/api.js'
 import { supabase } from '../lib/supabase.js'
+import { AGE_STATUS, ageStatusOf, useMe } from '../lib/useMe.js'
 
 const CONFIRM_TEXT = '退会する' // 押し間違いを防ぐため、この文字を入力しないと退会できない
 
@@ -64,11 +65,13 @@ function WithdrawDialog({ open, onClose }) {
   )
 }
 
-// アカウント画面（ログアウト・退会）
+// アカウント画面（ログアウト・年齢確認・退会）
 export default function AccountPage() {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const [dialogOpen, setDialogOpen] = useState(false)
+  const { me } = useMe()
+  const ageStatus = ageStatusOf(me)
 
   const handleLogout = async () => {
     await signOut()
@@ -89,6 +92,27 @@ export default function AccountPage() {
           <Button variant="outlined" startIcon={<LogoutIcon />} onClick={handleLogout} sx={{ alignSelf: 'flex-start' }}>
             ログアウト
           </Button>
+
+          <Divider />
+
+          {/* 年齢確認の状態 */}
+          <Stack spacing={1}>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+              <Typography sx={{ fontWeight: 700 }}>年齢確認</Typography>
+              {me && <Chip size="small" label={AGE_STATUS[ageStatus].label} color={ageStatus === 'verified' ? 'success' : 'default'} />}
+            </Stack>
+            {me && <Typography variant="body2" color="text.secondary">{AGE_STATUS[ageStatus].description}</Typography>}
+            {me && ageStatus !== 'verified' && (
+              <Button component={RouterLink} to="/age-verification" variant="contained" sx={{ alignSelf: 'flex-start' }}>
+                {ageStatus === 'pending' ? '提出内容を見る' : '年齢確認をする'}
+              </Button>
+            )}
+            {me?.isAdmin && (
+              <Button component={RouterLink} to="/admin/age-verifications" sx={{ alignSelf: 'flex-start' }}>
+                【運営者】年齢確認の審査画面へ
+              </Button>
+            )}
+          </Stack>
 
           <Divider />
 

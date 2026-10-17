@@ -59,8 +59,20 @@ export async function getSavedMatches(userId) {
   }
 }
 
+// 計算中のユーザー → その計算（Promise）。
+// 同じ人の計算が同時に2回動くと、両方の結果が保存されて重複してしまうため、
+// 計算中にもう一度呼ばれたら、新しく計算せずに動いている計算の結果を返す
+const inFlight = new Map()
+
 // マッチングを計算し直して保存し、結果を返す
-export async function findMatches(userId) {
+export function findMatches(userId) {
+  if (!inFlight.has(userId)) {
+    inFlight.set(userId, calculateMatches(userId).finally(() => inFlight.delete(userId)))
+  }
+  return inFlight.get(userId)
+}
+
+async function calculateMatches(userId) {
   const users = await loadAllUsers()
   const me = users.find((u) => u.id === userId)
   if (!me || !hasCompletedDiagnosis(me)) {

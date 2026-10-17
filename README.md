@@ -35,6 +35,18 @@ npm run try-matching -- test-user-01@example.com    # 画面を使わずにマ�
 
 相性ルールは `server/matching/rules.js` にまとまっています。
 
+## 自動テスト（Playwright）
+
+```bash
+cd client
+npm run test:e2e        # テスト用のサーバー（画面 5180番・API 3101番）を起動して、全テストを実行
+npx playwright show-report   # 結果を見やすく表示
+```
+
+- テストのたびに一時アカウント（e2e-○○@example.com）を作り、終わったら削除します
+- 事前に `server` で `npm run seed` を実行し、テストユーザーがいる状態にしておいてください
+- テスト中は Claude API を使いません（説明文は定型文になります）
+
 ## 起動方法
 
 ターミナルを2つ開いて、それぞれ実行します。

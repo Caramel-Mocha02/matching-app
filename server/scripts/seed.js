@@ -227,6 +227,11 @@ async function main() {
     if (e1) throw e1
     const { error: e2 } = await supabaseAdmin.from('preferences').insert({ ...rows.preferences, id })
     if (e2) throw e2
+    // テストユーザーは年齢確認済みにする（メッセージを送れるように）
+    const { error: e3 } = await supabaseAdmin
+      .from('age_verifications')
+      .insert({ user_id: id, status: 'verified', reviewed_at: new Date().toISOString() })
+    if (e3) throw e3
 
     created.push({ id, gender: u.gender, nickname: u.nickname, tag: u.tag })
     const spec = u.fixed ? `・年収${rows.profiles.annual_income}万円〜・${rows.profiles.appearance.height}cm【${u.tag}】` : ''
