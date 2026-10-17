@@ -8,8 +8,7 @@ export const PASSWORD = 'e2e-password-123'
 
 // テスト用の一時アカウント（テストの前に作り、後で消す）
 export const E2E_USERS = {
-  user: { email: 'e2e-user@example.com', nickname: 'E2Eユーザー' }, // 診断済み・年齢確認はまだ
-  admin: { email: 'e2e-admin@example.com', nickname: 'E2E運営' }, // 運営者
+  user: { email: 'e2e-user@example.com', nickname: 'E2Eユーザー' }, // 診断済み
   withdraw: { email: 'e2e-withdraw@example.com', nickname: 'E2E退会' }, // 退会のテスト用
 }
 
@@ -34,9 +33,3 @@ export async function openStep(page, title) {
   await page.getByRole('button', { name: new RegExp(`^\\d*\\s*${title}\\s*(\\d+/\\d+|任意)?$`) }).first().click()
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible()
 }
-
-// 1×1 の小さな PNG 画像（書類のアップロードのテストに使う）
-export const TINY_PNG = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
-  'base64',
-)

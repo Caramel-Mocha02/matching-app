@@ -20,7 +20,6 @@ export default function HomePage() {
     {withdrawn && !user && (
       <Alert severity="success" sx={{ mb: 3 }}>退会が完了しました。ご利用ありがとうございました。</Alert>
     )}
-    // 横長の画面ではキャッチコピー（左）と特徴（右）を横に並べ、スマホでは縦に並べる
     <Box
       sx={{
         display: 'grid',

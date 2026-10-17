@@ -7,11 +7,9 @@ export default async function globalTeardown() {
   const { data } = await admin.auth.admin.listUsers({ perPage: 1000 })
 
   for (const user of data.users.filter((u) => emails.includes(u.email))) {
-    // 写真・本人確認書類は自動では消えないので先に消す（いいね・メッセージなどはアカウント削除で消える）
-    for (const bucket of ['avatars', 'id-documents']) {
-      const { data: files } = await admin.storage.from(bucket).list(user.id)
-      if (files?.length) await admin.storage.from(bucket).remove(files.map((f) => `${user.id}/${f.name}`))
-    }
+    // 写真は自動では消えないので先に消す（いいね・メッセージなどはアカウント削除で消える）
+    const { data: files } = await admin.storage.from('avatars').list(user.id)
+    if (files?.length) await admin.storage.from('avatars').remove(files.map((f) => `${user.id}/${f.name}`))
     await admin.auth.admin.deleteUser(user.id)
   }
 }

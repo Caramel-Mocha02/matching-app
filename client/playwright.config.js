@@ -2,7 +2,7 @@
 // 実行：client フォルダで npm run test:e2e
 // 普段の開発用サーバーとぶつからないよう、テスト専用の番号でサーバーを起動する。
 import { defineConfig } from '@playwright/test'
-import { API_PORT, WEB_PORT, E2E_USERS } from './e2e/helpers.js'
+import { API_PORT, WEB_PORT } from './e2e/helpers.js'
 
 export default defineConfig({
   testDir: './e2e',
@@ -22,12 +22,11 @@ export default defineConfig({
   },
   webServer: [
     {
-      // テスト用の Express サーバー。運営者はテスト用の運営者アカウントだけにし、
-      // Claude API は使わない（料金がかからないよう、説明文は定型文にする）
+      // テスト用の Express サーバー。Claude API は使わない（料金がかからないよう、説明文は定型文にする）
       command: 'node index.js',
       cwd: '../server',
       port: API_PORT,
-      env: { PORT: String(API_PORT), ADMIN_EMAILS: E2E_USERS.admin.email, ANTHROPIC_API_KEY: '' },
+      env: { PORT: String(API_PORT), ANTHROPIC_API_KEY: '' },
       reuseExistingServer: false,
     },
     {

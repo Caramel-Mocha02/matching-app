@@ -1,5 +1,5 @@
 // テストの前に、テスト用の一時アカウントを作る。
-// 一般ユーザーは、テストユーザー「はると」の診断の回答を写して「診断済み」にしておく（年齢確認はまだ）。
+// テストユーザー「はると」の診断の回答を写して「診断済み」にしておく。
 import { adminClient, E2E_USERS, PASSWORD } from './helpers.js'
 import globalTeardown from './global-teardown.js'
 

@@ -136,14 +136,20 @@ export default function DiagnosisPage() {
 
   // 画面を開いたとき、保存済みの回答を読み込み、最初の未入力ステップから再開する
   useEffect(() => {
+    // 画面を閉じた後や、読み込みが2回走った場合（開発中など）に、古い読み込みの結果で画面を上書きしないための印
+    let active = true
     fetchDiagnosis(user.id)
       .then((loaded) => {
+        if (!active) return
         setData(loaded)
         const firstIncomplete = STEPS.findIndex((s) => s.items && !isStepComplete(loaded, s))
         setStep(firstIncomplete === -1 ? STEPS.length - 1 : firstIncomplete) // 全部済んでいれば確認ステップへ
       })
-      .catch(() => setError('データの読み込みに失敗しました。'))
-      .finally(() => setLoading(false))
+      .catch(() => active && setError('データの読み込みに失敗しました。'))
+      .finally(() => active && setLoading(false))
+    return () => {
+      active = false
+    }
   }, [user.id])
 
   // 別の画面に移動するとき（ヘッダーのリンクなど）も、未保存の変更を保存する

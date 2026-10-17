@@ -10,7 +10,6 @@ import { useAuth } from '../contexts/AuthContext.jsx'
 import { apiFetch } from '../lib/api.js'
 import { profileLine } from '../lib/labels.js'
 import { fetchMessages, markAsRead, sendMessage, subscribeToIncoming } from '../lib/social.js'
-import { ageStatusOf, useMe } from '../lib/useMe.js'
 
 // 画面に収まる高さ（ヘッダー・下部メニュー・余白の分を引く）。この中でメッセージだけがスクロールする
 const PANEL_HEIGHT = { xs: 'calc(100dvh - 190px)', md: 'calc(100dvh - 150px)' }
@@ -80,10 +79,6 @@ function ConversationList({ conversations, selectedId }) {
 // 右側（スマホでは1画面）：1人とのやりとり
 function ChatPanel({ partner, onActivity }) {
   const { user } = useAuth()
-  const { me } = useMe()
-  const ageStatus = ageStatusOf(me)
-  // 読み込み中（me が null）は入力欄を出しておき、確認が済んでいないと分かったら案内に切り替える
-  const ageVerified = !me || ageStatus === 'verified'
   const navigate = useNavigate()
   const [messages, setMessages] = useState(null)
   const [text, setText] = useState('')
@@ -205,20 +200,9 @@ function ChatPanel({ partner, onActivity }) {
         <div ref={endRef} />
       </Box>
 
-      {/* 下部：入力欄（年齢確認が済んでいない場合は、代わりに案内を出す） */}
+      {/* 下部：入力欄 */}
       <Divider />
       {error && <Alert severity="error" sx={{ borderRadius: 0 }}>{error}</Alert>}
-      {!ageVerified ? (
-        <Alert
-          severity="info"
-          sx={{ borderRadius: 0 }}
-          action={<Button component={RouterLink} to="/age-verification" size="small">年齢確認へ</Button>}
-        >
-          {ageStatus === 'pending'
-            ? '年齢確認の書類を確認中です。完了するとメッセージを送れるようになります。'
-            : 'メッセージを送るには、年齢確認が必要です。'}
-        </Alert>
-      ) : (
       <Stack direction="row" spacing={1} sx={{ p: 1.5, alignItems: 'flex-end' }}>
         <TextField
           fullWidth
@@ -237,7 +221,6 @@ function ChatPanel({ partner, onActivity }) {
           <SendIcon />
         </IconButton>
       </Stack>
-      )}
     </Stack>
   )
 }
