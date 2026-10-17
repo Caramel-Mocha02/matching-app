@@ -8,6 +8,7 @@ import DiagnosisPage from './pages/DiagnosisPage.jsx'
 import MatchesPage from './pages/MatchesPage.jsx'
 import LikesPage from './pages/LikesPage.jsx'
 import MessagesPage from './pages/MessagesPage.jsx'
+import AccountPage from './pages/AccountPage.jsx'
 
 // URLと画面の対応表
 export default function App() {
@@ -25,6 +26,7 @@ export default function App() {
           {/* /messages は一覧、/messages/相手のID はその相手とのやりとり（同じ画面で切り替える） */}
           <Route path="/messages" element={<MessagesPage />} />
           <Route path="/messages/:partnerId" element={<MessagesPage />} />
+          <Route path="/account" element={<AccountPage />} />
         </Route>
       </Route>
     </Routes>

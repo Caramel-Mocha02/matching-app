@@ -5,6 +5,7 @@ import { supabaseAdmin } from './lib/supabaseAdmin.js'
 import { findMatches, getSavedMatches } from './matching/index.js'
 import { getExplanation } from './matching/explain.js'
 import { getLikesOverview, getConversations, getNotificationCounts } from './social.js'
+import { deleteAccount } from './account.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -89,6 +90,17 @@ app.get('/api/conversations', requireUser, async (req, res) => {
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'メッセージの一覧を取得できませんでした。' })
+  }
+})
+
+// 退会：ログイン中のユーザー本人のアカウントと、すべてのデータを削除する
+app.delete('/api/account', requireUser, async (req, res) => {
+  try {
+    await deleteAccount(req.user.id)
+    res.json({ ok: true })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: '退会の処理に失敗しました。時間をおいてもう一度お試しください。' })
   }
 })
 

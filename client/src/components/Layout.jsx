@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Outlet, Link as RouterLink, useLocation, useNavigate } from 'react-router-dom'
+import { Outlet, Link as RouterLink, useLocation } from 'react-router-dom'
 import {
   AppBar, Badge, BottomNavigation, BottomNavigationAction, Box, Button, Container, IconButton, Paper, Toolbar,
   Typography,
@@ -8,7 +8,7 @@ import FavoriteIcon from '@mui/icons-material/Favorite'
 import AssignmentIcon from '@mui/icons-material/Assignment'
 import ThumbUpIcon from '@mui/icons-material/ThumbUp'
 import ChatIcon from '@mui/icons-material/Chat'
-import LogoutIcon from '@mui/icons-material/Logout'
+import AccountCircleIcon from '@mui/icons-material/AccountCircle'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { apiFetch } from '../lib/api.js'
 import { subscribeToIncoming } from '../lib/social.js'
@@ -48,17 +48,11 @@ function useNotificationCounts(user, pathname) {
 // 全画面共通のレイアウト。<Outlet /> の位置に各ページが表示される。
 // 横長の画面ではヘッダーにメニューを並べ、スマホでは画面下部にメニューを固定表示する。
 export default function Layout() {
-  const { user, signOut } = useAuth()
-  const navigate = useNavigate()
+  const { user } = useAuth()
   const { pathname } = useLocation()
   // 今いるページに対応するメニュー（/messages/xxx でも「メッセージ」を選択中にする）
   const activeNav = NAV_ITEMS.find((item) => pathname.startsWith(item.to))?.to ?? false
   const counts = useNotificationCounts(user, pathname)
-
-  const handleLogout = async () => {
-    await signOut()
-    navigate('/')
-  }
 
   return (
     <>
@@ -87,8 +81,15 @@ export default function Layout() {
                   </Button>
                 ))}
               </Box>
-              <IconButton onClick={handleLogout} aria-label="ログアウト" title="ログアウト">
-                <LogoutIcon />
+              {/* アカウント画面（ログアウト・退会） */}
+              <IconButton
+                component={RouterLink}
+                to="/account"
+                aria-label="アカウント"
+                title="アカウント（ログアウト・退会）"
+                color={pathname === '/account' ? 'primary' : 'default'}
+              >
+                <AccountCircleIcon />
               </IconButton>
             </>
           ) : (

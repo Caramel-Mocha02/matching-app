@@ -1,5 +1,5 @@
-import { Link as RouterLink } from 'react-router-dom'
-import { Box, Button, Card, CardContent, Stack, Typography } from '@mui/material'
+import { Link as RouterLink, useLocation } from 'react-router-dom'
+import { Alert, Box, Button, Card, CardContent, Stack, Typography } from '@mui/material'
 import GroupsIcon from '@mui/icons-material/Groups'
 import FavoriteIcon from '@mui/icons-material/Favorite'
 import ChatIcon from '@mui/icons-material/Chat'
@@ -13,8 +13,13 @@ const FEATURES = [
 
 export default function HomePage() {
   const { user } = useAuth()
+  const withdrawn = useLocation().state?.withdrawn // 退会した直後に、アカウント画面から渡される印
 
   return (
+    <>
+    {withdrawn && !user && (
+      <Alert severity="success" sx={{ mb: 3 }}>退会が完了しました。ご利用ありがとうございました。</Alert>
+    )}
     // 横長の画面ではキャッチコピー（左）と特徴（右）を横に並べ、スマホでは縦に並べる
     <Box
       sx={{
@@ -69,5 +74,6 @@ export default function HomePage() {
         ))}
       </Stack>
     </Box>
+    </>
   )
 }
